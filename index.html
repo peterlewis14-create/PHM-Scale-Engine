@@ -3,97 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hydraulic Scale Tool V7</title>
 
+<title>Hydraulic Model Scale Engine</title>
+
+<!-- ✅ Correct CSS link -->
 <link rel="stylesheet" href="styles.css">
+
+<!-- ✅ Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
 <header>
-  <div class="header-inner">
-    <h1>Hydraulic Model Scale Tool</h1>
-    <div class="steps">Step <span id="stepNo">1</span>/4</div>
+  <div class="header">
+    <h1>Hydraulic Model Scale Engine</h1>
+    <span>Step <span id="step">1</span>/4</span>
   </div>
 </header>
 
 <div class="container">
 
 <!-- STEP 1 -->
-<div id="step1" class="card">
+<div id="s1" class="card">
 <h2>Project Context</h2>
 
-<label>Design Stage</label>
-<select id="stage"></select>
-
-<label>Risk</label>
-<select id="risk"></select>
+<label>Risk Level</label>
+<select id="risk">
+<option>Low</option>
+<option>Moderate</option>
+<option>High</option>
+</select>
 
 <label>Objectives</label>
 <div id="objectives"></div>
 
-<div class="nav">
-<div></div>
-<button onclick="next(1)" class="primary">Next</button>
-</div>
+<button onclick="go(1)">Next →</button>
 </div>
 
 <!-- STEP 2 -->
-<div id="step2" class="card hidden">
+<div id="s2" class="card hidden">
 <h2>Prototype</h2>
 
 <input id="Lp" placeholder="Length (m)">
 <input id="Wp" placeholder="Width (m)">
 <input id="Qp" placeholder="Flow (m³/s)">
-<input id="Hmax" placeholder="Headwater">
-<input id="Elev" placeholder="Min elevation">
+<input id="Hmax" placeholder="Headwater (m)">
+<input id="Elev" placeholder="Elevation (m)">
 
-<div class="nav">
-<button onclick="back(2)">Back</button>
-<button onclick="next(2)" class="primary">Next</button>
-</div>
+<button onclick="back(2)">← Back</button>
+<button onclick="go(2)">Next →</button>
 </div>
 
 <!-- STEP 3 -->
-<div id="step3" class="card hidden">
+<div id="s3" class="card hidden">
 <h2>Laboratory</h2>
 
-<input id="Lb" placeholder="Bay length">
-<input id="Wb" placeholder="Bay width">
-<input id="Hb" placeholder="Bay height">
-<input id="Qb" placeholder="Available flow (L/s)">
+<input id="Lb" placeholder="Bay length (m)">
+<input id="Wb" placeholder="Bay width (m)">
+<input id="Hb" placeholder="Bay height (m)">
+<input id="Qb" placeholder="Flow (L/s)">
 
-<div class="nav">
-<button onclick="back(3)">Back</button>
-<button onclick="run()" class="primary">Calculate</button>
-</div>
+<button onclick="back(3)">← Back</button>
+<button onclick="run()">Calculate</button>
 </div>
 
-<!-- STEP 4 -->
-<div id="step4" class="card hidden">
+<!-- RESULTS -->
+<div id="s4" class="card hidden">
 
 <div class="hero">
-<div class="scale" id="scaleOut"></div>
-<div class="subtitle">Recommended engineering scale</div>
-</div>
-
+<div id="scale"></div>
 <div id="summary"></div>
+</div>
 
 <canvas id="chart"></canvas>
 
 <div id="alternatives"></div>
-
 <div id="table"></div>
-
 <div id="warnings"></div>
 
-<button onclick="exportReport()" class="primary">Export Report</button>
+<button onclick="exportReport()">Export Report</button>
 
 </div>
 
 </div>
 
+<!-- ✅ Correct JS link -->
 <script src="engine.js"></script>
+
 </body>
 </html>
