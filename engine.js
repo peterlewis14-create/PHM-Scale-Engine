@@ -83,40 +83,6 @@ function buttonRow(nextFn) {
 }
 
 ////////////////////////////////////////////////////////
-// KNOWLEDGE BASE
-////////////////////////////////////////////////////////
-
-const KNOWLEDGE_BASE = {
-
-  hydraulics: {
-    title: "Hydraulic Modelling Considerations",
-    statements: [
-      "Flow patterns and water surface profiles are generally well represented under Froude similarity.",
-      "Gravitational forces are correctly scaled, but viscous effects (Reynolds number) are not preserved.",
-      "At smaller scales, turbulence structure and boundary layer behaviour may differ from prototype."
-    ]
-  },
-
-  scour: {
-    title: "Scour and Sediment Transport Considerations",
-    statements: [
-      "Sediment transport cannot simultaneously satisfy Froude similarity, Shields parameter, and particle Reynolds similarity.",
-      "Model results should be interpreted as comparative or indicative rather than directly predictive.",
-      "Initiation of motion and erosion behaviour may be scale-dependent."
-    ]
-  },
-
-  scaleEffects: {
-    title: "General Scale Effects",
-    statements: [
-      "Surface tension and viscous forces become increasingly significant at smaller model scales.",
-      "Air entrainment and jet breakup processes may not fully reproduce prototype behaviour."
-    ]
-  }
-
-};
-
-////////////////////////////////////////////////////////
 // PROJECT SPECIFICS
 ////////////////////////////////////////////////////////
 
@@ -241,49 +207,11 @@ function computeScales() {
 
     let fitsGeo=(Lm<=bayL)&&(Wm<=bayW);
     let fitsFlow=(Qm<=Qavail);
-    let pass = fitsGeo && fitsFlow;
 
-    let rating="";
-    if(N===50 && pass) rating="Preferred";
-    else if(N<=80 && pass) rating="Acceptable";
-    else if(N<=100 && pass) rating="Marginal";
-    else rating="Not suitable";
-
-    results.push({N,Lm,Wm,Qm,pass,rating});
+    results.push({N,Lm,Wm,Qm,fitsGeo,fitsFlow,pass:fitsGeo&&fitsFlow});
   }
 
   return results;
-}
-
-////////////////////////////////////////////////////////
-// OBJECTIVE NOTES DISPLAY
-////////////////////////////////////////////////////////
-
-function buildObjectiveNotesHTML() {
-
-  let html = "<div class='reasoning'><h3>Engineering Modelling Considerations</h3>";
-
-  if (answers.objective === "Hydraulics") {
-    let kb = KNOWLEDGE_BASE.hydraulics;
-    html += "<p><b>" + kb.title + "</b></p><ul>";
-    kb.statements.forEach(s => html += "<li>" + s + "</li>");
-    html += "</ul>";
-  }
-
-  if (answers.objective === "Scour") {
-    let kb = KNOWLEDGE_BASE.scour;
-    html += "<p><b>" + kb.title + "</b></p><ul>";
-    kb.statements.forEach(s => html += "<li>" + s + "</li>");
-    html += "</ul>";
-  }
-
-  let kb2 = KNOWLEDGE_BASE.scaleEffects;
-  html += "<p><b>" + kb2.title + "</b></p><ul>";
-  kb2.statements.forEach(s => html += "<li>" + s + "</li>");
-  html += "</ul>";
-
-  html += "</div>";
-  return html;
 }
 
 ////////////////////////////////////////////////////////
@@ -293,19 +221,19 @@ function buildObjectiveNotesHTML() {
 function showResults() {
   const results=computeScales();
 
-  let selected = results.findIndex(r => r.N===50 && r.pass);
-  if(selected === -1) selected = results.findIndex(r => r.pass);
+  let selected = results.findIndex(r => r.pass);
 
   let html="<h2>Scale Assessment & Recommendation</h2>";
 
-  html += selected>=0
-    ? `<div class="recommend">✅ Recommended Scale: 1:${results[selected].N}</div>`
-    : `<div class="recommend">❌ No viable scale within ≤1:100</div>`;
+  if(selected>=0){
+    html += `<div class="recommend">✅ Recommended Scale: 1:${results[selected].N}</div>`;
+  } else {
+    html += `<div class="recommend">❌ No viable scale within ≤1:100</div>`;
+  }
 
-  html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Assessment</th></tr>";
+  html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>";
 
-  for(let i=0;i<results.length;i++){
-    let r=results[i];
+  results.forEach((r,i)=>{
     let style=(i===selected)?"style='background:#d9f2ff;font-weight:bold;'":"";
 
     html+=`<tr ${style}>
@@ -313,13 +241,38 @@ function showResults() {
       <td>${r.Lm.toFixed(2)}</td>
       <td>${r.Wm.toFixed(2)}</td>
       <td>${r.Qm.toFixed(3)}</td>
-      <td>${r.rating}</td>
+      <td>${r.fitsGeo?"✓":"✗"}</td>
+      <td>${r.fitsFlow?"✓":"✗"}</td>
     </tr>`;
-  }
+  });
 
   html+="</table>";
 
-  html += buildObjectiveNotesHTML();
+  if(selected>=0){
+    let r = results[selected];
+
+    let geoUtil = (r.Lm / answers.bayLength * 100).toFixed(1);
+    let flowUtil = (r.Qm / (answers.availableFlow/1000) * 100).toFixed(1);
+
+    // ✅ Governing constraint
+    let governing = "";
+    if(flowUtil > geoUtil) governing = "Flow capacity limits scale";
+    else governing = "Facility geometry limits scale";
+
+    // ✅ Confidence (corrected)
+    let confidence = "";
+    if(r.N <= 40) confidence = "High";
+    else if(r.N <= 70) confidence = "Moderate";
+    else confidence = "Lower";
+
+    html += "<div class='reasoning'>";
+    html += "<h3>Assessment Summary</h3>";
+    html += "<p><b>Governing factor:</b> " + governing + "</p>";
+    html += "<p><b>Confidence:</b> " + confidence + "</p>";
+    html += "<p><b>Geometry utilisation:</b> " + geoUtil + "%</p>";
+    html += "<p><b>Flow utilisation:</b> " + flowUtil + "%</p>";
+    html += "</div>";
+  }
 
   html += `
     <div style="display:flex; justify-content:space-between; margin-top:20px;">
