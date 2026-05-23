@@ -1,27 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PHM Scale Engine</title>
-
-  <!-- ✅ FIXED -->
-  <link rel="stylesheet" href="styles.css">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hydraulic Model Scale Tool</title>
+<link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
 
-  <h1 class="title">PHM Scale Engine</h1>
+<header>
+  <h1>Hydraulic Model Scale Selection Tool</h1>
+</header>
 
-  <div id="app"></div>
+<div class="container">
 
-  <!-- ✅ FIXED -->
-  <script src="engine.js"></script>
+<!-- STEP 1 -->
+<div id="step1" class="card">
+  <h2>Step 1 – Project Context</h2>
 
-  <script>
-    start();
-  </script>
+  <label>Design Stage</label>
+  <select id="stage">
+    <option>Concept</option>
+    <option>Preliminary</option>
+    <option>Detailed</option>
+  </select>
 
+  <label>Risk</label>
+  <select id="risk">
+    <option>Low</option>
+    <option>Moderate</option>
+    <option>High</option>
+  </select>
+
+  <label>Objectives</label>
+  <div>
+    <input type="checkbox" class="obj" value="General hydraulics"> General hydraulics<br>
+    <input type="checkbox" class="obj" value="Scour / sediment transport"> Scour<br>
+    <input type="checkbox" class="obj" value="Energy dissipation"> Energy dissipation<br>
+    <input type="checkbox" class="obj" value="Air entrainment"> Air entrainment<br>
+    <input type="checkbox" class="obj" value="Uplift pressures"> Uplift pressures
+  </div>
+
+  <div class="btns">
+    <div></div>
+    <button class="primary" onclick="nextStep(1)">Next</button>
+  </div>
+</div>
+
+<!-- STEP 2 -->
+<div id="step2" class="card hidden">
+  <h2>Step 2 – Prototype</h2>
+
+  <input id="Lp" placeholder="Length (m)">
+  <input id="Wp" placeholder="Width (m)">
+  <input id="Qp" placeholder="Discharge (m³/s)">
+  <input id="Hmax" placeholder="Max headwater">
+  <input id="Elev" placeholder="Min elevation">
+
+  <div class="btns">
+    <button class="secondary" onclick="prevStep(2)">Back</button>
+    <button class="primary" onclick="nextStep(2)">Next</button>
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div id="step3" class="card hidden">
+  <h2>Step 3 – Laboratory</h2>
+
+  <input id="Lb" placeholder="Bay length">
+  <input id="Wb" placeholder="Bay width">
+  <input id="Hb" placeholder="Bay height">
+  <input id="Qb" placeholder="Flow (L/s)">
+
+  <div class="btns">
+    <button class="secondary" onclick="prevStep(3)">Back</button>
+    <button class="primary" onclick="runCalculation()">Calculate</button>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div id="step4" class="card hidden">
+  <h2>Results</h2>
+
+  <div id="recommend" class="recommend"></div>
+  <div id="constraint"></div>
+  <div id="utilisation"></div>
+
+  <div id="table"></div>
+
+  <div id="warnings"></div>
+
+  <button class="primary" onclick="exportReport()">Export Report</button>
+</div>
+
+</div>
+
+<script src="engine.js"></script>
 </body>
 </html>
