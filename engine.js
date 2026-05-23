@@ -1,98 +1,97 @@
-const VERSION = "v2.1";
-const REVISION = "R2";
-
 const answers = {};
 let step = 1;
 let history = [];
 
 //////////////////////////////////////////////////
-// ✅ RULE TABLE
+// RULE TABLE
 //////////////////////////////////////////////////
 
 const MODELLING_RULES = [
-
   {
     triggers: { objectives: ["Scour"] },
     message: "Sediment transport behaviour is scale sensitive.",
     priority: "high",
-    references: [{ title: "Heller 2011", link: "#" }]
+    references: [{ title: "Heller (2011)", link: "#" }]
   },
-
   {
     triggers: { issues: ["Cavitation"] },
-    message: "Cavitation may not be properly reproduced.",
+    message: "Cavitation effects may not scale correctly.",
     priority: "high",
     references: []
   },
-
   {
     triggers: { risk: ["High"] },
     message: "High-risk projects require careful interpretation.",
     priority: "high",
     references: []
   },
-
   {
     triggers: { objectives: ["Energy"] },
-    message: "Air entrainment effects may be scale sensitive.",
+    message: "Energy dissipation may be affected by scale.",
     priority: "medium",
     references: []
   },
-
   {
     triggers: { scaleMin: 80 },
-    message: "Coarser model scales reduce hydraulic detail.",
+    message: "Coarser scales reduce hydraulic detail.",
     priority: "medium",
     references: []
   }
-
 ];
 
 //////////////////////////////////////////////////
 // NAV
 //////////////////////////////////////////////////
 
-function start(){ step=1; history=[]; showProject(); }
-function save(fn){ history.push({step,data:JSON.parse(JSON.stringify(answers)),fn}); }
-function back(){ let h=history.pop(); if(!h)return; Object.assign(answers,h.data); step=h.step; h.fn(); }
+function start() {
+  step = 1;
+  history = [];
+  showProject();
+}
 
-function render(content){
+function save(fn) {
+  history.push({
+    step,
+    data: JSON.parse(JSON.stringify(answers)),
+    fn
+  });
+}
+
+function back() {
+  let h = history.pop();
+  if (!h) return;
+  Object.assign(answers, h.data);
+  step = h.step;
+  h.fn();
+}
+
+function render(html) {
   document.getElementById("app").innerHTML = `
     <div>Step ${step} of 4</div>
-    ${content}
-    <div class="footer">v${VERSION} | ${REVISION}</div>
+    ${html}
   `;
 }
 
-function nav(next){
+function nav(next) {
   return `
-  <div style="display:flex; justify-content:space-between; margin-top:25px;">
-    
-    <div>
-      ${history.length 
-        ? '<button onclick="back()">Back</button>' 
-        : ''}
-    </div>
-
-    <div>
-      <button onclick="${next}">Next</button>
-    </div>
-
+  <div style="display:flex; justify-content:space-between; margin-top:20px;">
+    ${history.length ? `<button onclick="back()">Back</button>` : `<div></div>`}
+    <button onclick="${next}">Next</button>
   </div>`;
 }
 
-
 //////////////////////////////////////////////////
-// ✅ STEP 1 (CHECKBOX + INFO)
+// STEP 1 ✅ FIXED
 //////////////////////////////////////////////////
 
-function showProject(){
+function showProject() {
 
-  let html = `<h2>Project Context</h2>
+  let html = `
+  <h2>Project Context</h2>
 
   <label>Design Stage
     <span class="info">i</span>
-    <div class="tooltip">Level of design maturity.</div>
+    <div class="tooltip">Level of design maturity</div>
   </label>
 
   <select id="stage">
@@ -103,27 +102,25 @@ function showProject(){
 
   <label>Objectives
     <span class="info">i</span>
-    <div class="tooltip">Select all key modelling objectives.</div>
+    <div class="tooltip">Select modelling goals</div>
   </label>
 
-  <div class="checkbox-group">
-    <label><input type="checkbox" value="Hydraulics"> General hydraulics</label>
+  <div class="checkbox-group objectives">
+    <label><input type="checkbox" value="Hydraulics"> Hydraulics</label>
     <label><input type="checkbox" value="Scour"> Scour</label>
-    <label><input type="checkbox" value="Energy"> Energy dissipation</label>
+    <label><input type="checkbox" value="Energy"> Energy</label>
     <label><input type="checkbox" value="Uplift"> Uplift</label>
   </div>
 
   <label>Risk Level</label>
   <select id="risk">
-    <option>Low</option><option>Moderate</option><option>High</option>
+    <option>Low</option>
+    <option>Moderate</option>
+    <option>High</option>
   </select>
 
-  <label>Known Issues
-    <span class="info">i</span>
-    <div class="tooltip">Existing performance concerns.</div>
-  </label>
-
-  <div class="checkbox-group">
+  <label>Known Issues</label>
+  <div class="checkbox-group issues">
     <label><input type="checkbox" value="Erosion"> Erosion</label>
     <label><input type="checkbox" value="Cavitation"> Cavitation</label>
     <label><input type="checkbox" value="Velocity"> High velocity</label>
@@ -134,80 +131,172 @@ function showProject(){
   render(html);
 }
 
-function saveProject(){
+function saveProject() {
 
   save(showProject);
 
   answers.stage = stage.value;
   answers.risk = risk.value;
 
+  // ✅ FIXED: separate groups
   answers.objectives = Array.from(
-    document.querySelectorAll(".checkbox-group input:checked")
-  ).map(i=>i.value);
+    document.querySelectorAll(".objectives input:checked")
+  ).map(i => i.value);
 
-  answers.issues = answers.objectives; // simplified grouping
+  answers.issues = Array.from(
+    document.querySelectorAll(".issues input:checked")
+  ).map(i => i.value);
 
   step++;
   showPrototype();
 }
 
 //////////////////////////////////////////////////
-// CALC (UNCHANGED)
+// STEP 2
 //////////////////////////////////////////////////
 
-function compute(){
-  let scales=[20,30,40,50,60,70,80,90,100];
-  return scales.map(N=>{
-    let Qm=(answers.discharge/Math.pow(N,2.5))*1000;
-    let geo=true, flow=true;
-    return {N,Qm,geo,flow,pass:true};
+function showPrototype() {
+
+  let html = `
+  <h2>Prototype</h2>
+
+  <label>Length (m)</label>
+  <input id="len">
+
+  <label>Width (m)</label>
+  <input id="width">
+
+  <label>Flow (m³/s)</label>
+  <input id="Q">
+  `;
+
+  html += nav("savePrototype()");
+  render(html);
+}
+
+function savePrototype() {
+  save(showPrototype);
+
+  answers.length = parseFloat(len.value) || 0;
+  answers.width = parseFloat(width.value) || 0;
+  answers.discharge = parseFloat(Q.value) || 0;
+
+  step++;
+  showLab();
+}
+
+//////////////////////////////////////////////////
+// STEP 3
+//////////////////////////////////////////////////
+
+function showLab() {
+
+  let html = `
+  <h2>Laboratory</h2>
+
+  <label>Bay Length</label>
+  <input id="bayL">
+
+  <label>Bay Width</label>
+  <input id="bayW">
+
+  <label>Available Flow (L/s)</label>
+  <input id="Qavail">
+  `;
+
+  html += nav("saveLab()");
+  render(html);
+}
+
+function saveLab() {
+
+  save(showLab);
+
+  answers.bayLength = parseFloat(bayL.value) || 0;
+  answers.bayWidth = parseFloat(bayW.value) || 0;
+  answers.availableFlow = parseFloat(Qavail.value) || 0;
+
+  step++;
+  showResults();
+}
+
+//////////////////////////////////////////////////
+// CALC
+//////////////////////////////////////////////////
+
+function compute() {
+
+  const scales = [20,30,40,50,60,70,80,90,100];
+
+  return scales.map(N => {
+
+    let Lm = answers.length / N;
+    let Wm = answers.width / N;
+    let Qm = (answers.discharge / Math.pow(N, 2.5)) * 1000;
+
+    let geo = Lm <= answers.bayLength && Wm <= answers.bayWidth;
+    let flow = Qm <= answers.availableFlow;
+
+    return { N, Lm, Wm, Qm, geo, flow, pass: geo && flow };
   });
 }
 
 //////////////////////////////////////////////////
-// ✅ RULE ENGINE + PRIORITY SORT
+// RULE ENGINE ✅ SORTED
 //////////////////////////////////////////////////
 
-function evaluateRules(scale){
+function evaluateRules(scale) {
 
-  let out=[];
+  let warnings = [];
 
-  MODELLING_RULES.forEach(r=>{
-    let hit=false;
+  MODELLING_RULES.forEach(r => {
 
-    if(r.triggers.scaleMin && scale>=r.triggers.scaleMin) hit=true;
-    if(r.triggers.risk && r.triggers.risk.includes(answers.risk)) hit=true;
-    if(r.triggers.objectives && answers.objectives?.some(o=>r.triggers.objectives.includes(o))) hit=true;
+    let hit = false;
 
-    if(hit) out.push(r);
+    if (r.triggers.objectives)
+      if (answers.objectives?.some(o => r.triggers.objectives.includes(o)))
+        hit = true;
+
+    if (r.triggers.issues)
+      if (answers.issues?.some(i => r.triggers.issues.includes(i)))
+        hit = true;
+
+    if (r.triggers.risk)
+      if (r.triggers.risk.includes(answers.risk))
+        hit = true;
+
+    if (r.triggers.scaleMin)
+      if (scale >= r.triggers.scaleMin)
+        hit = true;
+
+    if (hit) warnings.push(r);
   });
 
-  // ✅ SORT BY PRIORITY
-  const order = {high:0, medium:1, info:2};
-  out.sort((a,b)=>order[a.priority]-order[b.priority]);
+  const order = { high:0, medium:1, info:2 };
+  warnings.sort((a,b)=>order[a.priority]-order[b.priority]);
 
-  return out;
+  return warnings;
 }
 
 //////////////////////////////////////////////////
-// REPORT EXPORT
+// EXPORT
 //////////////////////////////////////////////////
 
-function exportReport(warnings){
+function exportReport(warnings) {
 
-  let text="PHM Report\n\n";
+  let text = "PHM Scale Assessment\n\n";
 
-  warnings.forEach(w=>{
+  warnings.forEach(w => {
     text += "- " + w.message + "\n";
-    w.references.forEach(r=>{
-      text += "   ("+r.title+")\n";
+    w.references.forEach(r => {
+      text += "   (" + r.title + ")\n";
     });
   });
 
-  let blob=new Blob([text]);
-  let a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="report.txt";
+  let blob = new Blob([text]);
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "PHM_Report.txt";
   a.click();
 }
 
@@ -215,38 +304,48 @@ function exportReport(warnings){
 // RESULTS
 //////////////////////////////////////////////////
 
-function showResults(){
+function showResults() {
 
-  let results=compute();
-  let warnings=evaluateRules(60);
+  let results = compute();
+  let selected = results.findIndex(r => r.pass);
 
-  let html="<h2>Results</h2>";
+  let html = "<h2>Results</h2>";
 
-  html+="<ul>";
+  if (selected >= 0) {
+    html += `<div><b>Recommended Scale: 1:${results[selected].N}</b></div>`;
+  }
 
-  warnings.forEach(w=>{
+  let scale = results[selected]?.N || 100;
 
-    let cls = "warning-"+w.priority;
-    let icon = w.priority==="high"?"⚠":"ℹ";
+  let warnings = evaluateRules(scale);
 
-    html+=`<li class="${cls}">
-      ${icon} ${w.message}
-    `;
+  html += "<ul>";
 
-    if(w.references.length){
-      html+=`<div class="references"><ul>`;
-      w.references.forEach(r=>{
-        html+=`<li><a href="${r.link}" target="_blank">${r.title}</a></li>`;
+  warnings.forEach(w => {
+
+    let cls = "warning-" + w.priority;
+    let icon = w.priority === "high" ? "⚠" : "ℹ";
+
+    html += `<li class="${cls}">${icon} ${w.message}`;
+
+    if (w.references.length) {
+      html += "<ul>";
+      w.references.forEach(r => {
+        html += `<li><a href="${r.link}" target="_blank">${r.title}</a></li>`;
       });
-      html+=`</ul></div>`;
+      html += "</ul>";
     }
 
-    html+="</li>";
+    html += "</li>";
   });
 
-  html+="</ul>";
+  html += "</ul>";
 
-  html+=`<button onclick='exportReport(${JSON.stringify(warnings)})'>Export Report</button>`;
+  html += `
+  <button onclick='exportReport(${JSON.stringify(warnings)})'>
+    Export Report
+  </button>
+  `;
 
   render(html);
 }
