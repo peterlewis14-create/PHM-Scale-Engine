@@ -1,77 +1,51 @@
 let chart;
 
-// ---------- INIT ----------
-window.onload = () => {
-  init();
-  loadState();
-};
-
-function init() {
-  ["Concept","Preliminary","Detailed"].forEach(v=>add("stage",v));
-  ["Low","Moderate","High"].forEach(v=>add("risk",v));
-
-  let objectivesList = [
-    "General hydraulics",
-    "Scour / sediment transport",
-    "Energy dissipation",
-    "Air entrainment",
-    "Uplift pressures"
-  ];
-
-  objectives.innerHTML = objectivesList.map(o =>
-    `<label><input type="checkbox" value="${o}"> ${o}</label>`
-  ).join("");
-}
-
-function add(id,val){
-  let o=document.createElement("option");
-  o.textContent = val;
-  document.getElementById(id).appendChild(o);
-}
-
 // ---------- NAV ----------
-function next(n){ saveState(); toggle(n,n+1); }
+function go(n){ toggle(n,n+1); }
 function back(n){ toggle(n,n-1); }
 
 function toggle(a,b){
-  document.getElementById("step"+a).classList.add("hidden");
-  document.getElementById("step"+b).classList.remove("hidden");
-  stepNo.innerText = b;
+  document.getElementById("s"+a).classList.add("hidden");
+  document.getElementById("s"+b).classList.remove("hidden");
+  step.innerText = b;
 }
 
-// ---------- STATE ----------
-function saveState(){
-  localStorage.setItem("hydraulicApp", JSON.stringify(getInputs()));
+// ---------- INIT ----------
+window.onload = () => {
+  const objs = [
+    "General hydraulics",
+    "Scour / sediment transport",
+    "Energy dissipation",
+    "Air entrainment"
+  ];
+  objectives.innerHTML = objs.map(o =>
+    `<label><input type="checkbox" value="${o}"> ${o}</label>`
+  ).join("");
+};
+
+// ---------- VALIDATION ----------
+function validate(p){
+  if(Object.values(p).some(v => v <= 0)) return false;
+  if(p.Hmax <= p.Elev) return false;
+  return true;
 }
 
-function loadState(){
-  let data = JSON.parse(localStorage.getItem("hydraulicApp"));
-  if(!data) return;
-  Object.keys(data).forEach(k=>{
-    let el = document.getElementById(k);
-    if(el) el.value = data[k];
-  });
-}
-
-function getInputs(){
-  return {
-    Lp: Lp.value, Wp: Wp.value, Qp: Qp.value,
-    Hmax: Hmax.value, Elev: Elev.value,
-    Lb: Lb.value, Wb: Wb.value, Hb: Hb.value, Qb: Qb.value
-  };
-}
-
-// ---------- ENGINE ----------
+// ---------- MAIN ----------
 function run(){
 
 let p = {
-L:+Lp.value, W:+Wp.value, Q:+Qp.value,
-H:+Hmax.value, E:+Elev.value
+  L:+Lp.value, W:+Wp.value, Q:+Qp.value,
+  Hmax:+Hmax.value, Elev:+Elev.value
 };
 
 let lab = {
-L:+Lb.value, W:+Wb.value, H:+Hb.value, Q:+Qb.value
+  L:+Lb.value, W:+Wb.value, H:+Hb.value, Q:+Qb.value
 };
+
+if(!validate(p)) {
+  alert("Invalid inputs — please check values");
+  return;
+}
 
 let scales = [];
 
@@ -80,7 +54,7 @@ for(let N=5; N<=100; N+=5){
 let Lm=p.L/N;
 let Wm=p.W/N;
 let Qm=(p.Q/Math.pow(N,2.5))*1000;
-let Hm=((p.H-p.E)/N)+0.2;
+let Hm=((p.Hmax-p.Elev)/N)+0.2;
 
 let geo=Lm<=lab.L && Wm<=lab.W;
 let flow=Qm<=lab.Q;
@@ -88,34 +62,50 @@ let height=Hm<=lab.H;
 
 let feasible=geo && flow && height;
 
-let geoUtil=(Lm/lab.L)*100;
-let flowUtil=(Qm/lab.Q)*100;
+let geoU=(Lm/lab.L)*100;
+let flowU=(Qm/lab.Q)*100;
 
-scales.push({N,Lm,Wm,Hm,Qm,geo,flow,height,feasible,geoUtil,flowUtil});
+scales.push({N,Lm,Wm,Qm,Hm,geo,flow,height,feasible,geoU,flowU});
 }
 
 // ---- SELECTION ----
-let feasible = scales.filter(s=>s.feasible);
+let feasible = scales.filter(s => s.feasible);
 
-let best = feasible.find(s =>
-s.N<=60 &&
-s.geoUtil>=70 && s.geoUtil<=90 &&
-s.flowUtil>=70 && s.flowUtil<=90
-) || feasible[0];
+if(feasible.length === 0){
+  alert("No feasible scale found");
+  return;
+}
 
-// ---- ALTERNATIVES ----
-let alt = feasible.filter(s=>s.N!==best.N).slice(0,3);
-let infeasible = scales.filter(s=>!s.feasible && s.N<best.N).slice(0,3);
+let best = selectBest(feasible);
 
-render(scales,best,alt,infeasible);
-
+render(scales,best);
 toggle(3,4);
 }
 
-// ---------- RENDER ----------
-function render(scales,best,alt,infeasible){
+// ---------- SCORING ----------
+function selectBest(scales){
 
-scaleOut.innerText = "1:"+best.N;
+return scales.map(s=>{
+let score=0;
+
+score += (100 - s.N); // bigger better
+if(s.N>=50 && s.N<=60) score += 30;
+
+if(s.geoU>90) score -= 50;
+if(s.flowU>90) score -= 50;
+
+if(s.geoU>=70 && s.geoU<=90) score += 20;
+if(s.flowU>=70 && s.flowU<=90) score += 20;
+
+return {...s,score};
+
+}).sort((a,b)=>b.score-a.score)[0];
+}
+
+// ---------- RENDER ----------
+function render(scales,best){
+
+scale.innerText = "1:" + best.N;
 
 summary.innerHTML = `
 <b>Constraint:</b> ${
@@ -130,109 +120,118 @@ best.N <=70 ? "Moderate" : "Lower"
 }
 `;
 
-alternatives.innerHTML = `
-<b>Alternatives:</b><br>
-Feasible: ${alt.map(a=>"1:"+a.N).join(", ")}<br>
-Larger (fail): ${infeasible.map(a=>"1:"+a.N).join(", ")}
-`;
-
+renderChart(scales);
 renderTable(scales,best);
-renderChart(scales,best);
-renderWarnings(best);
+
+let objs = [...document.querySelectorAll("input[type=checkbox]:checked")]
+.map(o=>o.value);
+
+let warns = applyRules(best, objs);
+
+warnings.innerHTML = warns.map(w =>
+`<div class='warning ${w.priority}'>${w.message}</div>`
+).join("");
+}
+
+// ---------- RULES ----------
+const rules = [
+{
+  triggers:{
+    objectives:["Scour / sediment transport"],
+    scale_max:50
+  },
+  message:"Scale may be too small for sediment transport",
+  priority:"high"
+}
+];
+
+function applyRules(best, objectives){
+
+return rules.filter(r=>{
+
+let match = true;
+
+if(r.triggers.objectives){
+match = r.triggers.objectives.some(o => objectives.includes(o));
+}
+
+if(r.triggers.scale_max){
+match = match && best.N > r.triggers.scale_max;
+}
+
+return match;
+});
 }
 
 // ---------- TABLE ----------
 function renderTable(scales,best){
 
-let html="<table><tr><th>Scale</th><th>L</th><th>W</th><th>H</th><th>Q</th><th>Status</th></tr>";
+let html = `<table>
+<tr><th>Scale</th><th>L</th><th>W</th><th>H</th><th>Q</th><th>Status</th></tr>`;
 
 scales.forEach(s=>{
-html+=`<tr class="${s.N===best.N?'selected':''}">
+html += `<tr class='${s.N===best.N?"selected":""}'>
 <td>1:${s.N}</td>
 <td>${s.Lm.toFixed(2)}</td>
 <td>${s.Wm.toFixed(2)}</td>
 <td>${s.Hm.toFixed(2)}</td>
 <td>${s.Qm.toFixed(0)}</td>
-<td>${s.feasible?'✅':'❌'}</td>
+<td>${s.feasible?"✅":"❌"}</td>
 </tr>`;
 });
 
-html+="</table>";
+html += "</table>";
 table.innerHTML = html;
 }
 
 // ---------- CHART ----------
-function renderChart(scales,best){
+function renderChart(scales){
 
 if(chart) chart.destroy();
 
-chart = new Chart(chartCanvas(),{
-type:"line",
-data:{
-labels:scales.map(s=>s.N),
-datasets:[
+chart = new Chart(document.getElementById("chart"), {
+type: "line",
+data: {
+labels: scales.map(s=>s.N),
+datasets: [
 {
-label:"Geometry %",
-data:scales.map(s=>s.geoUtil),
-borderColor:"#0078d4"
+  label:"Geometry %",
+  data: scales.map(s=>s.geoU),
+  borderColor:"#0078d4"
 },
 {
-label:"Flow %",
-data:scales.map(s=>s.flowUtil),
-borderColor:"#00a36c"
+  label:"Flow %",
+  data: scales.map(s=>s.flowU),
+  borderColor:"#00a36c"
 }
 ]
 },
-options:{
-plugins:{legend:{position:"bottom"}}
+options: {
+responsive:true,
+plugins:{legend:{position:"bottom"}},
+scales:{y:{min:0,max:120}}
 }
 });
-}
-
-function chartCanvas(){
-return document.getElementById("chart");
-}
-
-// ---------- RULE SYSTEM ----------
-const rules = [
-{
-triggers:{ scale_max:50 },
-message:"Scale may be too small for sediment transport",
-priority:"high"
-}
-];
-
-function renderWarnings(best){
-
-let html = "";
-
-rules.forEach(r=>{
-if(r.triggers.scale_max && best.N>r.triggers.scale_max){
-html+=`<div class="warning ${r.priority}">${r.message}</div>`;
-}
-});
-
-warnings.innerHTML = html;
 }
 
 // ---------- EXPORT ----------
 function exportReport(){
 
-const txt = `
+let txt = `
 Hydraulic Model Scale Report
 ----------------------------
-Recommended Scale: ${scaleOut.innerText}
+
+Recommended Scale: ${scale.innerText}
 
 ${summary.innerText}
 
-${alternatives.innerText}
-
+Warnings:
 ${warnings.innerText}
 `;
 
-let blob = new Blob([txt], {type:"text/plain"});
+let blob = new Blob([txt]);
 let a = document.createElement("a");
 a.href = URL.createObjectURL(blob);
-a.download = "hydraulic-report.txt";
+a.download = "scale-report.txt";
 a.click();
 }
