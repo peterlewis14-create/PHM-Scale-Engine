@@ -56,12 +56,12 @@ button:hover {
 
 /* RECOMMENDATION */
 .recommend {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: bold;
   background: #e6f4ff;
-  padding: 20px;
+  padding: 25px;
   border-left: 6px solid #0078d4;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .subtext {
@@ -93,7 +93,6 @@ tr:hover {
 .selected {
   background: #cce5ff;
   font-weight: bold;
-  border-left: 4px solid #0078d4;
 }
 
 /* SUMMARY */
@@ -104,7 +103,7 @@ tr:hover {
   border: 1px solid #ddd;
 }
 
-/* CONFIDENCE BADGE */
+/* CONFIDENCE */
 .badge {
   padding: 4px 10px;
   border-radius: 5px;
@@ -116,11 +115,11 @@ tr:hover {
 .moderate { background: #ffc107; }
 .low { background: #dc3545; }
 
-/* UTIL BARS */
+/* UTILISATION */
 .util-bar {
   height: 10px;
   background: #ddd;
-  margin: 5px 0 10px;
+  margin: 5px 0;
 }
 
 .util-fill {
