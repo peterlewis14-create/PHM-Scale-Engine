@@ -1,4 +1,4 @@
-const VERSION = "v1.5";
+const VERSION = "v1.6";
 const REVISION = "R1";
 const LAST_UPDATED = "23 May 2026";
 
@@ -23,7 +23,6 @@ function save(fn){
 function back(){
   let h = history.pop();
   if(!h) return;
-
   Object.assign(answers,h.data);
   step = h.step;
   h.fn();
@@ -55,20 +54,15 @@ function nav(next){
   </div>`;
 }
 
-//////////////////////////////////////////////////
-// ✅ STEP 1 (RESTORED FRONT PAGE)
-//////////////////////////////////////////////////
-
+/* STEP 1 */
 function showProject(){
-
   let html = `<h2>Step 1 – Project Overview</h2>
 
   <label>Project Focus</label>
   <select id="focus">
     <option ${answers.objective==="Hydraulics"?"selected":""}>Hydraulics</option>
     <option ${answers.objective==="Scour"?"selected":""}>Scour</option>
-  </select>
-  `;
+  </select>`;
 
   html += nav("saveProject()");
   render(html);
@@ -76,18 +70,13 @@ function showProject(){
 
 function saveProject(){
   save(showProject);
-
   answers.objective = focus.value;
   step++;
   showPrototype();
 }
 
-//////////////////////////////////////////////////
-// STEP 2
-//////////////////////////////////////////////////
-
+/* STEP 2 */
 function showPrototype(){
-
   let html = `<h2>Step 2 – Prototype Details</h2>
 
   <label>Total Length (m)</label>
@@ -115,12 +104,8 @@ function savePrototype(){
   showLab();
 }
 
-//////////////////////////////////////////////////
-// STEP 3
-//////////////////////////////////////////////////
-
+/* STEP 3 */
 function showLab(){
-
   let html = `<h2>Step 3 – Laboratory Conditions</h2>
 
   <label>Bay Length (m)</label>
@@ -148,38 +133,32 @@ function saveLab(){
   showResults();
 }
 
-//////////////////////////////////////////////////
-// CALCULATIONS
-//////////////////////////////////////////////////
-
+/* CALCS */
 function compute(){
-
-  const scales = [20,30,40,50,60,70,80,90,100];
+  const scales=[20,30,40,50,60,70,80,90,100];
   const results=[];
 
   scales.forEach(N=>{
-
     let Lm = answers.length / N;
     let Wm = answers.width / N;
-
-    // ✅ convert to L/s
     let Qm = (answers.discharge / Math.pow(N,2.5)) * 1000;
 
-    let geo = Lm <= answers.bayLength && Wm <= answers.bayWidth;
-    let flow = Qm <= answers.availableFlow;
+    let geo = Lm<=answers.bayLength && Wm<=answers.bayWidth;
+    let flow = Qm<=answers.availableFlow;
 
-    results.push({N,Lm,Wm,Qm,geo,flow,pass:geo&&flow});
+    let reason = "";
+    if(!geo) reason = "Geometry exceeds facility";
+    else if(!flow) reason = "Flow exceeds supply";
+    else reason = "Feasible";
+
+    results.push({N,Lm,Wm,Qm,geo,flow,pass:geo&&flow,reason});
   });
 
   return results;
 }
 
-//////////////////////////////////////////////////
-// RESULTS
-//////////////////////////////////////////////////
-
+/* RESULTS */
 function showResults(){
-
   let results = compute();
   let selected = results.findIndex(r=>r.pass);
 
@@ -188,15 +167,27 @@ function showResults(){
   if(selected>=0){
     let r = results[selected];
 
+    let geoUtil = (r.Lm/answers.bayLength)*100;
+    let flowUtil = (r.Qm/answers.availableFlow)*100;
+
+    let governing = flowUtil>geoUtil
+      ? "Flow capacity limits achievable scale"
+      : "Facility geometry limits achievable scale";
+
     html += `
     <div class="recommend">
       RECOMMENDED SCALE<br>1:${r.N}
-      <div class="subtext">Largest feasible model within constraints</div>
+      <div class="subtext">Largest feasible model within laboratory constraints</div>
     </div>
+
+    <div class="subtext">⚙ ${governing}</div>
+
+    <p style="margin-top:10px;">
+      A scale of 1:${r.N} provides a practical balance between model size and available laboratory capacity.
+    </p>
     `;
   }
 
-  // ✅ FIXED COLUMN HEADINGS
   html += `
   <table>
     <tr>
@@ -206,11 +197,12 @@ function showResults(){
       <th>Flowrate (L/s)</th>
       <th>Geometry</th>
       <th>Flow</th>
+      <th>Reason</th>
     </tr>
   `;
 
   results.forEach((r,i)=>{
-    html += `
+    html+=`
     <tr class="${i===selected?'selected':''}">
       <td>1:${r.N}</td>
       <td>${r.Lm.toFixed(2)}</td>
@@ -218,6 +210,7 @@ function showResults(){
       <td>${r.Qm.toFixed(1)}</td>
       <td>${r.geo?'✓':'✗'}</td>
       <td>${r.flow?'✓':'✗'}</td>
+      <td>${r.reason}</td>
     </tr>`;
   });
 
@@ -226,25 +219,25 @@ function showResults(){
   if(selected>=0){
     let r = results[selected];
 
-    let geoUtil = (r.Lm / answers.bayLength)*100;
-    let flowUtil = (r.Qm / answers.availableFlow)*100;
+    let geoUtil = (r.Lm/answers.bayLength)*100;
+    let flowUtil = (r.Qm/answers.availableFlow)*100;
 
     let confClass = r.N<=40?'high':(r.N<=70?'moderate':'low');
     let confText = r.N<=40?'High':(r.N<=70?'Moderate':'Lower');
-
-    let governing = flowUtil > geoUtil
-      ? "Flow capacity"
-      : "Geometry";
 
     html += `
     <div class="reasoning">
       <h3>Assessment Summary</h3>
 
-      ⚙ Governing: ${governing}<br><br>
+      📊 Confidence:
+      <span class="badge ${confClass}">${confText}</span>
 
-      📊 Confidence: <span class="badge ${confClass}">${confText}</span>
+      <p class="subtext">
+      Confidence is primarily driven by achievable model scale.
+      Larger physical models generally provide improved representation of hydraulic behaviour.
+      </p>
 
-      <p class="subtext">Confidence is primarily based on achievable model scale.</p>
+      <p><b>Utilisation</b> (values close to 100% indicate efficient use of facility)</p>
 
       Geometry utilisation
       <div class="util-bar">
@@ -252,7 +245,7 @@ function showResults(){
       </div>
       ${geoUtil.toFixed(1)}%
 
-      Flow utilisation
+      Flow utilisation (% of available supply)
       <div class="util-bar">
         <div class="util-fill" style="width:${flowUtil}%"></div>
       </div>
