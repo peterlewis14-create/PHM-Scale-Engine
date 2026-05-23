@@ -1,11 +1,9 @@
 // -------------------------------
-// STATE
-// -------------------------------
 const answers = {};
 let currentStep = 1;
 let totalSteps = 6;
 
-// History stack for Back button
+// Proper navigation history
 let historyStack = [];
 
 // -------------------------------
@@ -16,70 +14,103 @@ function start() {
 }
 
 // -------------------------------
-function goBack() {
-  if (historyStack.length > 0) {
-    const prev = historyStack.pop();
-    currentStep--;
-    prev();
-  }
+function saveState(fn) {
+  // Deep copy answers
+  const snapshot = JSON.parse(JSON.stringify(answers));
+
+  historyStack.push({
+    step: currentStep,
+    answers: snapshot,
+    fn: fn
+  });
 }
 
 // -------------------------------
-function render(html, saveStateFn) {
-  const app = document.getElementById("app");
+function goBack() {
+  if (historyStack.length === 0) return;
 
-  if (saveStateFn) {
-    historyStack.push(saveStateFn);
-  }
+  const prev = historyStack.pop();
+
+  // restore state
+  Object.assign(answers, prev.answers);
+  currentStep = prev.step;
+
+  prev.fn();
+}
+
+// -------------------------------
+function render(html) {
+  const app = document.getElementById("app");
 
   const percent = Math.round((currentStep / totalSteps) * 100);
 
-  let progress = "";
-  progress += "<div class='progress-container'>";
-  progress += "Step " + currentStep + " of " + totalSteps;
-  progress += "<div class='progress-bar'>";
-  progress += "<div class='progress-fill' style='width:" + percent + "%'></div>";
-  progress += "</div></div>";
+  let progress = `
+    <div class="progress-container">
+      Step ${currentStep} of ${totalSteps}
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${percent}%"></div>
+      </div>
+    </div>
+  `;
 
-  let backBtn = "";
-  if (historyStack.length > 0) {
-    backBtn = "<button onclick='goBack()'>Back</button><br><br>";
-  }
+  app.innerHTML = progress + html;
+}
 
-  app.innerHTML = progress + backBtn + html;
+// -------------------------------
+function buttonRow(nextFn) {
+  return `
+    <div style="display:flex; justify-content:space-between; margin-top:20px;">
+      ${historyStack.length > 0 ? `<button onclick="goBack()">Back</button>` : `<div></div>`}
+      <button onclick="${nextFn}">Next</button>
+    </div>
+  `;
 }
 
 // ----------------------------------------------------
 // PROJECT SPECIFICS
 // ----------------------------------------------------
 function showProjectSpecifics() {
-  let html = "";
-  html += "<h2>Project Specifics</h2>";
+  let html = "<h2>Project Specifics</h2>";
 
-  html += "<label>Design Stage</label><br>";
-  html += "<select id='stage'><option>Concept</option><option>Detailed</option></select><br><br>";
+  html += `
+    <label>Design Stage</label><br>
+    <select id="stage">
+      <option ${answers.designStage==="Concept"?"selected":""}>Concept</option>
+      <option ${answers.designStage==="Detailed"?"selected":""}>Detailed</option>
+    </select><br><br>
 
-  html += "<label>Project Risk Level</label><br>";
-  html += "<select id='risk'><option>Low</option><option>High</option></select><br><br>";
+    <label>Project Risk Level</label><br>
+    <select id="risk">
+      <option ${answers.riskLevel==="Low"?"selected":""}>Low</option>
+      <option ${answers.riskLevel==="High"?"selected":""}>High</option>
+    </select><br><br>
 
-  html += "<label>Project Focus</label><br>";
-  html += "<select id='focus'><option>Hydraulics</option><option>Scour</option></select><br><br>";
+    <label>Project Focus</label><br>
+    <select id="focus">
+      <option ${answers.objective==="Hydraulics"?"selected":""}>Hydraulics</option>
+      <option ${answers.objective==="Scour"?"selected":""}>Scour</option>
+    </select><br><br>
 
-  html += "<label>Known Hydraulic Issues</label><br>";
-  html += "<select id='issues'><option>None</option><option>Some</option><option>Critical</option></select>";
+    <label>Known Hydraulic Issues</label><br>
+    <select id="issues">
+      <option ${answers.issues==="None"?"selected":""}>None</option>
+      <option ${answers.issues==="Some"?"selected":""}>Some</option>
+      <option ${answers.issues==="Critical"?"selected":""}>Critical</option>
+    </select>
+  `;
 
-  html += "<br><br><button onclick='saveProjectSpecifics()'>Next</button>";
+  html += buttonRow("saveProjectSpecifics()");
 
-  render(html, showProjectSpecifics);
+  render(html);
 }
 
 function saveProjectSpecifics() {
+  saveState(showProjectSpecifics);
+
   answers.designStage = document.getElementById("stage").value;
   answers.riskLevel = document.getElementById("risk").value;
   answers.objective = document.getElementById("focus").value;
   answers.issues = document.getElementById("issues").value;
-
-  totalSteps = (answers.designStage === "Concept") ? 4 : 6;
 
   currentStep++;
   if (answers.designStage === "Concept") {
@@ -90,180 +121,139 @@ function saveProjectSpecifics() {
 }
 
 // ----------------------------------------------------
-// GEOMETRY
-// ----------------------------------------------------
 function showGeometry() {
-  let html = "";
-  html += "<h2>Prototype Geometry</h2>";
+  let html = "<h2>Prototype Geometry</h2>";
 
-  html += "Total Length (m)<br><input id='len'><br>";
-  html += "Upstream (m)<br><input id='up'><br>";
-  html += "Downstream (m)<br><input id='down'><br>";
-  html += "Width (m)<br><input id='width'><br>";
+  html += `
+    Length (m)<br><input id="len" value="${answers.length || ""}"><br>
+    Upstream (m)<br><input id="up" value="${answers.upstream || ""}"><br>
+    Downstream (m)<br><input id="down" value="${answers.downstream || ""}"><br>
+    Width (m)<br><input id="width" value="${answers.width || ""}"><br>
+  `;
 
-  html += "<br><button onclick='saveGeometry()'>Next</button>";
+  html += buttonRow("saveGeometry()");
 
-  render(html, showGeometry);
+  render(html);
 }
 
 function saveGeometry() {
-  answers.length = parseFloat(document.getElementById("len").value) || 0;
-  answers.upstream = parseFloat(document.getElementById("up").value) || 0;
-  answers.downstream = parseFloat(document.getElementById("down").value) || 0;
-  answers.width = parseFloat(document.getElementById("width").value) || 0;
+  saveState(showGeometry);
+
+  answers.length = parseFloat(len.value) || 0;
+  answers.upstream = parseFloat(up.value) || 0;
+  answers.downstream = parseFloat(down.value) || 0;
+  answers.width = parseFloat(width.value) || 0;
 
   currentStep++;
   showDischarge();
 }
 
 // ----------------------------------------------------
-// FLOW
-// ----------------------------------------------------
 function showDischarge() {
-  let html = "";
-  html += "<h2>Prototype Flow</h2>";
+  let html = "<h2>Prototype Flow</h2>";
 
-  html += "Discharge (m³/s)<br><input id='Qp'><br>";
+  html += `
+    Discharge (m³/s)<br>
+    <input id="Qp" value="${answers.discharge || ""}">
+  `;
 
-  html += "<br><button onclick='saveDischarge()'>Next</button>";
+  html += buttonRow("saveDischarge()");
 
-  render(html, showDischarge);
+  render(html);
 }
 
 function saveDischarge() {
-  answers.discharge = parseFloat(document.getElementById("Qp").value) || 0;
+  saveState(showDischarge);
+
+  answers.discharge = parseFloat(Qp.value) || 0;
 
   currentStep++;
-  showLaboratoryConditions();
+  showLab();
 }
 
 // ----------------------------------------------------
-// LAB CONDITIONS
-// ----------------------------------------------------
-function showLaboratoryConditions() {
-  let html = "";
-  html += "<h2>Laboratory Conditions</h2>";
+function showLab() {
+  let html = "<h2>Laboratory Conditions</h2>";
 
-  html += "Bay Length (m)<br><input id='bayL'><br>";
-  html += "Bay Width (m)<br><input id='bayW'><br>";
-  html += "Available Flow (L/s)<br><input id='Qavail'><br>";
+  html += `
+    Bay Length (m)<br><input id="bayL" value="${answers.bayLength || ""}"><br>
+    Bay Width (m)<br><input id="bayW" value="${answers.bayWidth || ""}"><br>
+    Available Flow (L/s)<br><input id="Qavail" value="${answers.availableFlow || ""}">
+  `;
 
-  html += "<br><button onclick='saveLaboratoryConditions()'>Run Assessment</button>";
+  html += buttonRow("saveLab()");
 
-  render(html, showLaboratoryConditions);
+  render(html);
 }
 
-function saveLaboratoryConditions() {
-  answers.bayLength = parseFloat(document.getElementById("bayL").value) || 0;
-  answers.bayWidth = parseFloat(document.getElementById("bayW").value) || 0;
-  answers.availableFlow = parseFloat(document.getElementById("Qavail").value) || 0;
+function saveLab() {
+  saveState(showLab);
+
+  answers.bayLength = parseFloat(bayL.value) || 0;
+  answers.bayWidth = parseFloat(bayW.value) || 0;
+  answers.availableFlow = parseFloat(Qavail.value) || 0;
 
   currentStep++;
   showResults();
 }
 
 // ----------------------------------------------------
-// CALC
-// ----------------------------------------------------
 function computeScales() {
-  const Lp = (answers.length || 0) + (answers.upstream || 0) + (answers.downstream || 0);
-  const Wp = answers.width || 0;
-  const Qp = answers.discharge || 0;
+  const Lp = (answers.length||0)+(answers.upstream||0)+(answers.downstream||0);
+  const Qp = answers.discharge||0;
+  const bayL = answers.bayLength||0;
+  const bayW = answers.bayWidth||0;
+  const Qavail = (answers.availableFlow||0)/1000;
 
-  const bayL = answers.bayLength || 0;
-  const bayW = answers.bayWidth || 0;
-  const Qavail = (answers.availableFlow || 0) / 1000;
+  const scales=[20,40,60,80,100,150,200];
+  const results=[];
 
-  const scales = [20, 40, 60, 80, 100, 150, 200];
-  const results = [];
+  for(let i=0;i<scales.length;i++){
+    let N=scales[i];
 
-  for (let i = 0; i < scales.length; i++) {
-    let N = scales[i];
+    let Lm=Lp/N;
+    let Wm=(answers.width||0)/N;
+    let Qm=Qp/Math.pow(N,2.5);
 
-    let Lm = Lp / N;
-    let Wm = Wp / N;
-    let Qm = Qp / Math.pow(N, 2.5);
+    let fitsGeo=(Lm<=bayL)&&(Wm<=bayW);
+    let fitsFlow=(Qm<=Qavail);
 
-    let fitsGeo = (Lm <= bayL) && (Wm <= bayW);
-    let fitsFlow = Qm <= Qavail;
-
-    results.push({ N, Lm, Wm, Qm, fitsGeo, fitsFlow, pass: fitsGeo && fitsFlow });
+    results.push({N,Lm,Wm,Qm,fitsGeo,fitsFlow,pass:fitsGeo&&fitsFlow});
   }
-
   return results;
 }
 
 // ----------------------------------------------------
-// RESULTS
-// ----------------------------------------------------
 function showResults() {
-  const results = computeScales();
+  const results=computeScales();
 
-  let selectedIndex = -1;
-  for (let i = 0; i < results.length; i++) {
-    if (results[i].pass) {
-      selectedIndex = i;
-      break;
-    }
+  let selected=results.findIndex(r=>r.pass);
+
+  let html="<h2>Scale Assessment & Recommendation</h2>";
+
+  html+= selected>=0
+    ? `<div class="recommend">✅ Recommended Scale: 1:${results[selected].N}</div>`
+    : `<div class="recommend">❌ No viable scale</div>`;
+
+  html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>";
+
+  for(let i=0;i<results.length;i++){
+    let r=results[i];
+    let style=(i===selected)?"style='background:#d9f2ff;font-weight:bold;'":"";
+
+    html+=`<tr ${style}>
+      <td>1:${r.N}</td>
+      <td>${r.Lm.toFixed(2)}</td>
+      <td>${r.Wm.toFixed(2)}</td>
+      <td>${r.Qm.toFixed(3)}</td>
+      <td>${r.fitsGeo?"✓":"✗"}</td>
+      <td>${r.fitsFlow?"✓":"✗"}</td>
+    </tr>`;
   }
 
-  let html = "";
-  html += "<h2>Scale Assessment & Recommendation</h2>";
+  html+="</table>";
 
-  if (selectedIndex >= 0) {
-    html += "<div class='recommend'>✅ Recommended Scale: 1:" + results[selectedIndex].N + "</div>";
-  } else {
-    html += "<div class='recommend'>❌ No viable scale identified</div>";
-  }
+  html+=buttonRow("start()");
 
-  html += "<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>";
-
-  for (let i = 0; i < results.length; i++) {
-    let r = results[i];
-    let highlight = (i === selectedIndex) ? " style='background:#d9f2ff; font-weight:bold;'" : "";
-
-    html += "<tr" + highlight + ">";
-    html += "<td>1:" + r.N + "</td>";
-    html += "<td>" + r.Lm.toFixed(2) + "</td>";
-    html += "<td>" + r.Wm.toFixed(2) + "</td>";
-    html += "<td>" + r.Qm.toFixed(3) + "</td>";
-    html += "<td>" + (r.fitsGeo ? "✓" : "✗") + "</td>";
-    html += "<td>" + (r.fitsFlow ? "✓" : "✗") + "</td>";
-    html += "</tr>";
-  }
-
-  html += "</table>";
-
-// UTILISATION BARS WITH COLOUR THRESHOLDS
-if (selectedIndex >= 0) {
-  let r = results[selectedIndex];
-
-  let geoUtil = ((r.Lm / answers.bayLength) * 100);
-  let flowUtil = ((r.Qm / (answers.availableFlow / 1000)) * 100);
-
-  function getColor(u) {
-    if (u < 80) return "#28a745";       // Green
-    if (u < 95) return "#ffc107";       // Amber
-    return "#dc3545";                   // Red
-  }
-
-  let geoColor = getColor(geoUtil);
-  let flowColor = getColor(flowUtil);
-
-  html += "<h3>Utilisation</h3>";
-
-  html += "<p>Geometry: " + geoUtil.toFixed(0) + "%</p>";
-  html += "<div class='progress-bar'>";
-  html += "<div class='progress-fill' style='width:" + geoUtil + "%; background:" + geoColor + "'></div>";
-  html += "</div>";
-
-  html += "<p>Flow: " + flowUtil.toFixed(0) + "%</p>";
-  html += "<div class='progress-bar'>";
-  html += "<div class='progress-fill' style='width:" + flowUtil + "%; background:" + flowColor + "'></div>";
-  html += "</div>";
-}
-
-  html += "<br><button onclick='start()'>Restart</button>";
-
-  render(html, showResults);
+  render(html);
 }
