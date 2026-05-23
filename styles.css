@@ -195,3 +195,44 @@ tr:hover {
   font-size: 12px;
   margin-top: 5px;
 }
+.checkbox-group label {
+  display: block;
+  margin: 4px 0;
+  cursor: pointer;
+}
+
+.info {
+  display: inline-block;
+  margin-left: 6px;
+  background: #0078d4;
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.tooltip {
+  display: none;
+  background: #333;
+  color: white;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.info:hover + .tooltip {
+  display: block;
+}
+
+.warning-high { color: #dc3545; font-weight: bold; }
+.warning-medium { color: #ffc107; font-weight: bold; }
+.warning-info { color: #555; }
+
+.references {
+  font-size: 12px;
+  margin-top: 5px;
+}
