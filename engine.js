@@ -205,7 +205,7 @@ function saveAvailableFlow() {
 }
 
 // ----------------------------------------------------
-// SUMMARY (placeholder for real logic engine)
+// SUMMARY
 // ----------------------------------------------------
 function showSummary() {
   render(`
@@ -222,3 +222,4 @@ function showSummary() {
 function render(html) {
   document.getElementById("app").innerHTML = html;
 }
+
