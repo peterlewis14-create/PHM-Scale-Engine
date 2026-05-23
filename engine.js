@@ -1,4 +1,15 @@
 // -------------------------------
+// BUILD TIMESTAMP (GENERATED ON LOAD)
+// -------------------------------
+const BUILD_TIMESTAMP = new Date().toLocaleString("en-AU", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit"
+});
+
+// -------------------------------
 const answers = {};
 let currentStep = 1;
 let totalSteps = 5;
@@ -33,8 +44,6 @@ function goBack() {
 }
 
 // -------------------------------
-// ✅ UPDATED RENDER WITH AUTO TIMESTAMP
-// -------------------------------
 function render(html) {
   const app = document.getElementById("app");
 
@@ -49,17 +58,6 @@ function render(html) {
     </div>
   `;
 
-  // ✅ AUTO TIMESTAMP
-  const now = new Date();
-
-  const formattedTime = now.toLocaleString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-
   let footer = `
     <div style="
       margin-top:30px;
@@ -67,7 +65,7 @@ function render(html) {
       color:#777;
       text-align:right;
     ">
-      Page generated: ${formattedTime}
+      Tool build time: ${BUILD_TIMESTAMP}
     </div>
   `;
 
@@ -94,39 +92,25 @@ const KNOWLEDGE_BASE = {
     title: "Hydraulic Modelling Considerations",
     statements: [
       "Flow patterns and water surface profiles are generally well represented under Froude similarity.",
-      "Model scaling preserves gravitational forces but not viscous forces (Reynolds mismatch).",
-      "At smaller scales, turbulence structure may differ from prototype."
-    ],
-    references: [
-      "Henderson (1966)",
-      "USBR Guidelines",
-      "Chow (1959)"
+      "Gravitational forces are correctly scaled, but viscous effects (Reynolds number) are not preserved.",
+      "At smaller scales, turbulence structure and boundary layer behaviour may differ from prototype."
     ]
   },
 
   scour: {
     title: "Scour and Sediment Transport Considerations",
     statements: [
-      "Sediment transport cannot satisfy all similarity laws simultaneously.",
-      "Results should be interpreted comparatively rather than absolutely.",
-      "Erosion behaviour may be scale-dependent."
-    ],
-    references: [
-      "Heller (2011)",
-      "USACE EM 1110",
-      "Ashida & Michiue"
+      "Sediment transport cannot simultaneously satisfy Froude similarity, Shields parameter, and particle Reynolds similarity.",
+      "Model results should be interpreted as comparative or indicative rather than directly predictive.",
+      "Initiation of motion and erosion behaviour may be scale-dependent."
     ]
   },
 
   scaleEffects: {
     title: "General Scale Effects",
     statements: [
-      "Surface tension and viscosity become more important at small scales.",
-      "Air entrainment and jet breakup are sensitive to scale distortion."
-    ],
-    references: [
-      "Novak et al.",
-      "Falvey (1980)"
+      "Surface tension and viscous forces become increasingly significant at smaller model scales.",
+      "Air entrainment and jet breakup processes may not fully reproduce prototype behaviour."
     ]
   }
 
@@ -346,4 +330,3 @@ function showResults() {
 
   render(html);
 }
-``
