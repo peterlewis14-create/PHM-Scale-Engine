@@ -3,12 +3,12 @@
 // -------------------------------
 const answers = {};
 let currentStep = 1;
-let totalSteps = 7;
+let totalSteps = 6;
 
 // -------------------------------
 function start() {
   currentStep = 1;
-  showDesignStage();
+  showProjectSpecifics();
 }
 
 // -------------------------------
@@ -28,47 +28,54 @@ function render(html) {
 }
 
 // ----------------------------------------------------
-// QUESTIONS
+// PROJECT SPECIFICS (GROUPED)
 // ----------------------------------------------------
-function showDesignStage() {
+function showProjectSpecifics() {
   let html = "";
-  html += "<h2>Design Stage</h2>";
-  html += "<button onclick=\"selectDesignStage('Concept')\">Concept</button>";
-  html += "<button onclick=\"selectDesignStage('Detailed')\">Detailed</button>";
+  html += "<h2>Project Specifics</h2>";
+
+  html += "<label>Design Stage</label><br>";
+  html += "<select id='stage'>";
+  html += "<option>Concept</option>";
+  html += "<option>Detailed</option>";
+  html += "</select><br><br>";
+
+  html += "<label>Project Risk Level</label><br>";
+  html += "<select id='risk'>";
+  html += "<option>Low</option>";
+  html += "<option>High</option>";
+  html += "</select><br><br>";
+
+  html += "<label>Project Focus</label><br>";
+  html += "<select id='focus'>";
+  html += "<option>Hydraulics</option>";
+  html += "<option>Scour</option>";
+  html += "</select><br><br>";
+
+  html += "<label>Known Hydraulic Issues</label><br>";
+  html += "<select id='issues'>";
+  html += "<option>None</option>";
+  html += "<option>Some</option>";
+  html += "<option>Critical</option>";
+  html += "</select>";
+
+  html += "<br><br><button onclick='saveProjectSpecifics()'>Next</button>";
+
   render(html);
 }
 
-function selectDesignStage(stage) {
-  answers.designStage = stage;
-  totalSteps = (stage === "Concept") ? 5 : 7;
-  currentStep++;
-  showRiskLevel();
-}
+function saveProjectSpecifics() {
+  answers.designStage = document.getElementById("stage").value;
+  answers.riskLevel = document.getElementById("risk").value;
+  answers.objective = document.getElementById("focus").value;
+  answers.issues = document.getElementById("issues").value;
 
-function showRiskLevel() {
-  let html = "";
-  html += "<h2>Risk Level</h2>";
-  html += "<button onclick=\"selectRisk('Low')\">Low</button>";
-  html += "<button onclick=\"selectRisk('High')\">High</button>";
-  render(html);
-}
+  if (answers.designStage === "Concept") {
+    totalSteps = 4;
+  } else {
+    totalSteps = 6;
+  }
 
-function selectRisk(level) {
-  answers.riskLevel = level;
-  currentStep++;
-  showObjectives();
-}
-
-function showObjectives() {
-  let html = "";
-  html += "<h2>Objective</h2>";
-  html += "<button onclick=\"selectObjective('Hydraulics')\">Hydraulics</button>";
-  html += "<button onclick=\"selectObjective('Scour')\">Scour</button>";
-  render(html);
-}
-
-function selectObjective(obj) {
-  answers.objective = obj;
   currentStep++;
   if (answers.designStage === "Concept") {
     showDischarge();
@@ -78,16 +85,19 @@ function selectObjective(obj) {
 }
 
 // ----------------------------------------------------
-// GEOMETRY
+// PROTOTYPE GEOMETRY
 // ----------------------------------------------------
 function showGeometry() {
   let html = "";
   html += "<h2>Prototype Geometry</h2>";
-  html += "Total Length (m)<br><input id='len'><br>";
-  html += "Upstream (m)<br><input id='up'><br>";
-  html += "Downstream (m)<br><input id='down'><br>";
-  html += "Width (m)<br><input id='width'><br>";
+
+  html += "<label>Total Structure Length (m)</label><br><input id='len'><br>";
+  html += "<label>Upstream Extent (m)</label><br><input id='up'><br>";
+  html += "<label>Downstream Extent (m)</label><br><input id='down'><br>";
+  html += "<label>Width of Interest (m)</label><br><input id='width'><br>";
+
   html += "<br><button onclick='saveGeometry()'>Next</button>";
+
   render(html);
 }
 
@@ -102,36 +112,49 @@ function saveGeometry() {
 }
 
 // ----------------------------------------------------
-// FLOW
+// PROTOTYPE FLOW
 // ----------------------------------------------------
 function showDischarge() {
   let html = "";
   html += "<h2>Prototype Flow</h2>";
-  html += "Discharge (m3/s)<br><input id='Qp'><br>";
+
+  html += "<label>Discharge (m³/s)</label><br>";
+  html += "<input id='Qp'><br>";
+
   html += "<br><button onclick='saveDischarge()'>Next</button>";
+
   render(html);
 }
 
 function saveDischarge() {
   answers.discharge = parseFloat(document.getElementById("Qp").value) || 0;
+
   currentStep++;
-  showFacility();
+  showLaboratoryConditions();
 }
 
 // ----------------------------------------------------
-// FACILITY
+// LABORATORY CONDITIONS (RENAMED)
 // ----------------------------------------------------
-function showFacility() {
+function showLaboratoryConditions() {
   let html = "";
-  html += "<h2>Facility Constraints</h2>";
-  html += "Bay Length (m)<br><input id='bayL'><br>";
-  html += "Bay Width (m)<br><input id='bayW'><br>";
-  html += "Available Flow (L/s)<br><input id='Qavail'><br>";
-  html += "<br><button onclick='saveFacility()'>Run Analysis</button>";
+  html += "<h2>Laboratory Conditions</h2>";
+
+  html += "<label>Available Bay Length (m)</label><br>";
+  html += "<input id='bayL'><br>";
+
+  html += "<label>Available Bay Width (m)</label><br>";
+  html += "<input id='bayW'><br>";
+
+  html += "<label>Available Flow Supply (L/s)</label><br>";
+  html += "<input id='Qavail'><br>";
+
+  html += "<br><button onclick='saveLaboratoryConditions()'>Run Assessment</button>";
+
   render(html);
 }
 
-function saveFacility() {
+function saveLaboratoryConditions() {
   answers.bayLength = parseFloat(document.getElementById("bayL").value) || 0;
   answers.bayWidth = parseFloat(document.getElementById("bayW").value) || 0;
   answers.availableFlow = parseFloat(document.getElementById("Qavail").value) || 0;
@@ -141,7 +164,7 @@ function saveFacility() {
 }
 
 // ----------------------------------------------------
-// SCALE CALC
+// SCALE CALCULATION
 // ----------------------------------------------------
 function computeScales() {
   const Lp = (answers.length || 0) + (answers.upstream || 0) + (answers.downstream || 0);
@@ -180,8 +203,8 @@ function computeScales() {
 // ----------------------------------------------------
 function showResults() {
   const results = computeScales();
-  let selected = null;
 
+  let selected = null;
   for (let i = 0; i < results.length; i++) {
     if (results[i].pass) {
       selected = results[i];
@@ -189,48 +212,41 @@ function showResults() {
     }
   }
 
-  let recommendation = "";
-  let governing = "";
-  let actions = "";
+  let recommendation = selected
+    ? "✅ Recommended Scale: 1:" + selected.N
+    : "❌ No viable scale identified";
 
-  if (selected) {
-    recommendation = "✅ Recommended Scale: 1:" + selected.N;
-  } else {
-    recommendation = "❌ No viable scale found";
-  }
-
-  // ---------------- GOVERNING CONSTRAINT ----------------
   let geoFails = results.filter(r => !r.fitsGeo).length;
   let flowFails = results.filter(r => !r.fitsFlow).length;
 
+  let governing = "";
   if (geoFails > flowFails) {
-    governing = "Geometry (model size exceeds facility limits)";
+    governing = "Geometry governs (model size exceeds laboratory capacity)";
   } else if (flowFails > geoFails) {
-    governing = "Flow capacity (required discharge too high)";
+    governing = "Flow governs (required discharge exceeds supply capacity)";
   } else {
-    governing = "Both geometry and flow constraints are critical";
+    governing = "Both geometry and flow constraints are equally critical";
   }
 
-  // ---------------- RECOMMENDATIONS ----------------
-  actions += "<ul>";
+  let actions = "<ul>";
 
   if (flowFails > 0) {
-    actions += "<li>Consider increasing scale (coarser model) to reduce flow demand</li>";
-    actions += "<li>Reduce design flow range if acceptable</li>";
+    actions += "<li>Consider increasing scale (coarser model) to reduce required discharge</li>";
+    actions += "<li>Assess whether full design flow range is required</li>";
   }
 
   if (geoFails > 0) {
-    actions += "<li>Reduce model extent (truncate upstream/downstream)</li>";
-    actions += "<li>Consider sectional or partial model</li>";
+    actions += "<li>Reduce upstream/downstream extents if feasible</li>";
+    actions += "<li>Consider sectional or partial modelling approach</li>";
   }
 
   if (!selected) {
-    actions += "<li>Consider distorted scale or multiple models</li>";
+    actions += "<li>Consider distorted scale or multiple-model strategy</li>";
   }
 
   actions += "</ul>";
 
-  // ---------------- TABLE ----------------
+  // Table
   let table = "<table><tr>";
   table += "<th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th><th>Pass</th></tr>";
 
@@ -252,17 +268,15 @@ function showResults() {
 
   table += "</table>";
 
-  // ---------------- FINAL OUTPUT ----------------
   let html = "";
-  html += "<h2>Results</h2>";
+  html += "<h2>Scale Assessment & Recommendation</h2>";
   html += "<div class='recommend'>" + recommendation + "</div>";
   html += table;
 
   html += "<div class='reasoning'>";
-  html += "<h3>Governing Constraint</h3>";
+  html += "<h3>Governing Condition</h3>";
   html += "<p>" + governing + "</p>";
-
-  html += "<h3>Recommended Actions</h3>";
+  html += "<h3>Recommended Next Steps</h3>";
   html += actions;
   html += "</div>";
 
