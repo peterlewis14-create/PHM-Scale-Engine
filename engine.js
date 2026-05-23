@@ -66,11 +66,21 @@ function render(content){
 
 function nav(next){
   return `
-  <div style="margin-top:20px;">
-    ${history.length?'<button onclick="back()">Back</button>':''}
-    <button onclick="${next}">Next</button>
+  <div style="display:flex; justify-content:space-between; margin-top:25px;">
+    
+    <div>
+      ${history.length 
+        ? '<button onclick="back()">Back</button>' 
+        : ''}
+    </div>
+
+    <div>
+      <button onclick="${next}">Next</button>
+    </div>
+
   </div>`;
 }
+
 
 //////////////////////////////////////////////////
 // ✅ STEP 1 (CHECKBOX + INFO)
