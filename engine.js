@@ -5,15 +5,32 @@ const answers = {};
 let currentStep = 1;
 let totalSteps = 6;
 
+// History stack for Back button
+let historyStack = [];
+
 // -------------------------------
 function start() {
   currentStep = 1;
+  historyStack = [];
   showProjectSpecifics();
 }
 
 // -------------------------------
-function render(html) {
+function goBack() {
+  if (historyStack.length > 0) {
+    const prev = historyStack.pop();
+    currentStep--;
+    prev();
+  }
+}
+
+// -------------------------------
+function render(html, saveStateFn) {
   const app = document.getElementById("app");
+
+  if (saveStateFn) {
+    historyStack.push(saveStateFn);
+  }
 
   const percent = Math.round((currentStep / totalSteps) * 100);
 
@@ -24,44 +41,36 @@ function render(html) {
   progress += "<div class='progress-fill' style='width:" + percent + "%'></div>";
   progress += "</div></div>";
 
-  app.innerHTML = progress + html;
+  let backBtn = "";
+  if (historyStack.length > 0) {
+    backBtn = "<button onclick='goBack()'>Back</button><br><br>";
+  }
+
+  app.innerHTML = progress + backBtn + html;
 }
 
 // ----------------------------------------------------
-// PROJECT SPECIFICS (GROUPED)
+// PROJECT SPECIFICS
 // ----------------------------------------------------
 function showProjectSpecifics() {
   let html = "";
   html += "<h2>Project Specifics</h2>";
 
   html += "<label>Design Stage</label><br>";
-  html += "<select id='stage'>";
-  html += "<option>Concept</option>";
-  html += "<option>Detailed</option>";
-  html += "</select><br><br>";
+  html += "<select id='stage'><option>Concept</option><option>Detailed</option></select><br><br>";
 
   html += "<label>Project Risk Level</label><br>";
-  html += "<select id='risk'>";
-  html += "<option>Low</option>";
-  html += "<option>High</option>";
-  html += "</select><br><br>";
+  html += "<select id='risk'><option>Low</option><option>High</option></select><br><br>";
 
   html += "<label>Project Focus</label><br>";
-  html += "<select id='focus'>";
-  html += "<option>Hydraulics</option>";
-  html += "<option>Scour</option>";
-  html += "</select><br><br>";
+  html += "<select id='focus'><option>Hydraulics</option><option>Scour</option></select><br><br>";
 
   html += "<label>Known Hydraulic Issues</label><br>";
-  html += "<select id='issues'>";
-  html += "<option>None</option>";
-  html += "<option>Some</option>";
-  html += "<option>Critical</option>";
-  html += "</select>";
+  html += "<select id='issues'><option>None</option><option>Some</option><option>Critical</option></select>";
 
   html += "<br><br><button onclick='saveProjectSpecifics()'>Next</button>";
 
-  render(html);
+  render(html, showProjectSpecifics);
 }
 
 function saveProjectSpecifics() {
@@ -70,11 +79,7 @@ function saveProjectSpecifics() {
   answers.objective = document.getElementById("focus").value;
   answers.issues = document.getElementById("issues").value;
 
-  if (answers.designStage === "Concept") {
-    totalSteps = 4;
-  } else {
-    totalSteps = 6;
-  }
+  totalSteps = (answers.designStage === "Concept") ? 4 : 6;
 
   currentStep++;
   if (answers.designStage === "Concept") {
@@ -85,20 +90,20 @@ function saveProjectSpecifics() {
 }
 
 // ----------------------------------------------------
-// PROTOTYPE GEOMETRY
+// GEOMETRY
 // ----------------------------------------------------
 function showGeometry() {
   let html = "";
   html += "<h2>Prototype Geometry</h2>";
 
-  html += "<label>Total Structure Length (m)</label><br><input id='len'><br>";
-  html += "<label>Upstream Extent (m)</label><br><input id='up'><br>";
-  html += "<label>Downstream Extent (m)</label><br><input id='down'><br>";
-  html += "<label>Width of Interest (m)</label><br><input id='width'><br>";
+  html += "Total Length (m)<br><input id='len'><br>";
+  html += "Upstream (m)<br><input id='up'><br>";
+  html += "Downstream (m)<br><input id='down'><br>";
+  html += "Width (m)<br><input id='width'><br>";
 
   html += "<br><button onclick='saveGeometry()'>Next</button>";
 
-  render(html);
+  render(html, showGeometry);
 }
 
 function saveGeometry() {
@@ -112,18 +117,17 @@ function saveGeometry() {
 }
 
 // ----------------------------------------------------
-// PROTOTYPE FLOW
+// FLOW
 // ----------------------------------------------------
 function showDischarge() {
   let html = "";
   html += "<h2>Prototype Flow</h2>";
 
-  html += "<label>Discharge (m³/s)</label><br>";
-  html += "<input id='Qp'><br>";
+  html += "Discharge (m³/s)<br><input id='Qp'><br>";
 
   html += "<br><button onclick='saveDischarge()'>Next</button>";
 
-  render(html);
+  render(html, showDischarge);
 }
 
 function saveDischarge() {
@@ -134,24 +138,19 @@ function saveDischarge() {
 }
 
 // ----------------------------------------------------
-// LABORATORY CONDITIONS (RENAMED)
+// LAB CONDITIONS
 // ----------------------------------------------------
 function showLaboratoryConditions() {
   let html = "";
   html += "<h2>Laboratory Conditions</h2>";
 
-  html += "<label>Available Bay Length (m)</label><br>";
-  html += "<input id='bayL'><br>";
-
-  html += "<label>Available Bay Width (m)</label><br>";
-  html += "<input id='bayW'><br>";
-
-  html += "<label>Available Flow Supply (L/s)</label><br>";
-  html += "<input id='Qavail'><br>";
+  html += "Bay Length (m)<br><input id='bayL'><br>";
+  html += "Bay Width (m)<br><input id='bayW'><br>";
+  html += "Available Flow (L/s)<br><input id='Qavail'><br>";
 
   html += "<br><button onclick='saveLaboratoryConditions()'>Run Assessment</button>";
 
-  render(html);
+  render(html, showLaboratoryConditions);
 }
 
 function saveLaboratoryConditions() {
@@ -164,7 +163,7 @@ function saveLaboratoryConditions() {
 }
 
 // ----------------------------------------------------
-// SCALE CALCULATION
+// CALC
 // ----------------------------------------------------
 function computeScales() {
   const Lp = (answers.length || 0) + (answers.upstream || 0) + (answers.downstream || 0);
@@ -179,7 +178,7 @@ function computeScales() {
   const results = [];
 
   for (let i = 0; i < scales.length; i++) {
-    let N = scales[i];
+    let N = scales[i;
 
     let Lm = Lp / N;
     let Wm = Wp / N;
@@ -188,99 +187,70 @@ function computeScales() {
     let fitsGeo = (Lm <= bayL) && (Wm <= bayW);
     let fitsFlow = Qm <= Qavail;
 
-    results.push({
-      N, Lm, Wm, Qm,
-      fitsGeo, fitsFlow,
-      pass: fitsGeo && fitsFlow
-    });
+    results.push({ N, Lm, Wm, Qm, fitsGeo, fitsFlow, pass: fitsGeo && fitsFlow });
   }
 
   return results;
 }
 
 // ----------------------------------------------------
-// RESULTS + ENGINEERING LOGIC
+// RESULTS
 // ----------------------------------------------------
 function showResults() {
   const results = computeScales();
 
-  let selected = null;
+  let selectedIndex = -1;
   for (let i = 0; i < results.length; i++) {
     if (results[i].pass) {
-      selected = results[i];
+      selectedIndex = i;
       break;
     }
   }
 
-  let recommendation = selected
-    ? "✅ Recommended Scale: 1:" + selected.N
-    : "❌ No viable scale identified";
+  let html = "";
+  html += "<h2>Scale Assessment & Recommendation</h2>";
 
-  let geoFails = results.filter(r => !r.fitsGeo).length;
-  let flowFails = results.filter(r => !r.fitsFlow).length;
-
-  let governing = "";
-  if (geoFails > flowFails) {
-    governing = "Geometry governs (model size exceeds laboratory capacity)";
-  } else if (flowFails > geoFails) {
-    governing = "Flow governs (required discharge exceeds supply capacity)";
+  if (selectedIndex >= 0) {
+    html += "<div class='recommend'>✅ Recommended Scale: 1:" + results[selectedIndex].N + "</div>";
   } else {
-    governing = "Both geometry and flow constraints are equally critical";
+    html += "<div class='recommend'>❌ No viable scale identified</div>";
   }
 
-  let actions = "<ul>";
-
-  if (flowFails > 0) {
-    actions += "<li>Consider increasing scale (coarser model) to reduce required discharge</li>";
-    actions += "<li>Assess whether full design flow range is required</li>";
-  }
-
-  if (geoFails > 0) {
-    actions += "<li>Reduce upstream/downstream extents if feasible</li>";
-    actions += "<li>Consider sectional or partial modelling approach</li>";
-  }
-
-  if (!selected) {
-    actions += "<li>Consider distorted scale or multiple-model strategy</li>";
-  }
-
-  actions += "</ul>";
-
-  // Table
-  let table = "<table><tr>";
-  table += "<th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th><th>Pass</th></tr>";
+  html += "<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>";
 
   for (let i = 0; i < results.length; i++) {
     let r = results[i];
+    let highlight = (i === selectedIndex) ? " style='background:#d9f2ff; font-weight:bold;'" : "";
 
-    table += "<tr>";
-    table += "<td>1:" + r.N + "</td>";
-    table += "<td>" + r.Lm.toFixed(2) + "</td>";
-    table += "<td>" + r.Wm.toFixed(2) + "</td>";
-    table += "<td>" + r.Qm.toFixed(3) + "</td>";
-
-    table += "<td class='" + (r.fitsGeo ? "good" : "bad") + "'>" + (r.fitsGeo ? "✓" : "✗") + "</td>";
-    table += "<td class='" + (r.fitsFlow ? "good" : "bad") + "'>" + (r.fitsFlow ? "✓" : "✗") + "</td>";
-    table += "<td class='" + (r.pass ? "good" : "bad") + "'>" + (r.pass ? "✓" : "✗") + "</td>";
-
-    table += "</tr>";
+    html += "<tr" + highlight + ">";
+    html += "<td>1:" + r.N + "</td>";
+    html += "<td>" + r.Lm.toFixed(2) + "</td>";
+    html += "<td>" + r.Wm.toFixed(2) + "</td>";
+    html += "<td>" + r.Qm.toFixed(3) + "</td>";
+    html += "<td>" + (r.fitsGeo ? "✓" : "✗") + "</td>";
+    html += "<td>" + (r.fitsFlow ? "✓" : "✗") + "</td>";
+    html += "</tr>";
   }
 
-  table += "</table>";
+  html += "</table>";
 
-  let html = "";
-  html += "<h2>Scale Assessment & Recommendation</h2>";
-  html += "<div class='recommend'>" + recommendation + "</div>";
-  html += table;
+  // UTILISATION BARS
+  if (selectedIndex >= 0) {
+    let r = results[selectedIndex];
 
-  html += "<div class='reasoning'>";
-  html += "<h3>Governing Condition</h3>";
-  html += "<p>" + governing + "</p>";
-  html += "<h3>Recommended Next Steps</h3>";
-  html += actions;
-  html += "</div>";
+    let geoUtil = ((r.Lm / answers.bayLength) * 100).toFixed(0);
+    let flowUtil = ((r.Qm / (answers.availableFlow / 1000)) * 100).toFixed(0);
+
+    html += "<h3>Utilisation</h3>";
+
+    html += "Geometry: " + geoUtil + "%";
+    html += "<div class='progress-bar'><div class='progress-fill' style='width:" + geoUtil + "%'></div></div>";
+
+    html += "Flow: " + flowUtil + "%";
+    html += "<div class='progress-bar'><div class='progress-fill' style='width:" + flowUtil + "%'></div></div>";
+  }
 
   html += "<br><button onclick='start()'>Restart</button>";
 
-  render(html);
+  render(html, showResults);
 }
