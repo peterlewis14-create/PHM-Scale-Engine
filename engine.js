@@ -13,7 +13,6 @@ function start() {
 function showDesignStage() {
   render(`
     <h2>Design Stage</h2>
-    <p>What is the current design stage?</p>
     <button onclick="selectDesignStage('Concept')">Concept</button>
     <button onclick="selectDesignStage('Preliminary')">Preliminary</button>
     <button onclick="selectDesignStage('Detailed')">Detailed</button>
@@ -26,12 +25,9 @@ function selectDesignStage(stage) {
 }
 
 // ----------------------------------------------------
-// QUESTION 2 — RISK LEVEL
-// ----------------------------------------------------
 function showRiskLevel() {
   render(`
     <h2>Risk Level</h2>
-    <p>What is the project risk level?</p>
     <button onclick="selectRisk('Low')">Low</button>
     <button onclick="selectRisk('Medium')">Medium</button>
     <button onclick="selectRisk('High')">High</button>
@@ -44,16 +40,13 @@ function selectRisk(level) {
 }
 
 // ----------------------------------------------------
-// QUESTION 3 — PRIMARY OBJECTIVES
-// ----------------------------------------------------
 function showObjectives() {
   render(`
-    <h2>Primary Objectives</h2>
-    <p>What is the main objective of the physical model?</p>
+    <h2>Primary Objective</h2>
     <button onclick="selectObjective('Hydraulics')">Hydraulics</button>
     <button onclick="selectObjective('Energy Dissipation')">Energy Dissipation</button>
-    <button onclick="selectObjective('Scour / Erosion')">Scour / Erosion</button>
-    <button onclick="selectObjective('General Behaviour')">General Behaviour</button>
+    <button onclick="selectObjective('Scour')">Scour / Erosion</button>
+    <button onclick="selectObjective('General')">General Behaviour</button>
   `);
 }
 
@@ -63,12 +56,9 @@ function selectObjective(obj) {
 }
 
 // ----------------------------------------------------
-// QUESTION 4 — KNOWN ISSUES
-// ----------------------------------------------------
 function showKnownIssues() {
   render(`
     <h2>Known Issues</h2>
-    <p>Are there any known issues or sensitivities?</p>
     <button onclick="selectIssues('None')">None</button>
     <button onclick="selectIssues('Some')">Some</button>
     <button onclick="selectIssues('Critical')">Critical</button>
@@ -78,7 +68,6 @@ function showKnownIssues() {
 function selectIssues(issue) {
   answers.issues = issue;
 
-  // Branching: if Concept stage → skip detailed geometry
   if (answers.designStage === 'Concept') {
     showPrototypeDischarge();
   } else {
@@ -87,139 +76,230 @@ function selectIssues(issue) {
 }
 
 // ----------------------------------------------------
-// GEOMETRY QUESTIONS (only for Preliminary/Detailed)
+// GEOMETRY
 // ----------------------------------------------------
 function showPrototypeLength() {
   render(`
-    <h2>Prototype Geometry</h2>
-    <p>Enter spillway + basin length (m):</p>
-    <input id="len" type="number" />
+    <h2>Total Structure Length (m)</h2>
+    <input id="len" type="number">
     <button onclick="saveLength()">Next</button>
   `);
 }
 
 function saveLength() {
-  answers.length = document.getElementById("len").value;
+  answers.length = parseFloat(document.getElementById("len").value) || 0;
   showUpstreamExtent();
 }
 
 function showUpstreamExtent() {
   render(`
-    <h2>Upstream Extent</h2>
-    <p>Enter upstream extent (m):</p>
-    <input id="up" type="number" />
+    <h2>Upstream Extent (m)</h2>
+    <input id="up" type="number">
     <button onclick="saveUpstream()">Next</button>
   `);
 }
 
 function saveUpstream() {
-  answers.upstream = document.getElementById("up").value;
+  answers.upstream = parseFloat(document.getElementById("up").value) || 0;
   showDownstreamExtent();
 }
 
 function showDownstreamExtent() {
   render(`
-    <h2>Downstream Extent</h2>
-    <p>Enter downstream extent (m):</p>
-    <input id="down" type="number" />
+    <h2>Downstream Extent (m)</h2>
+    <input id="down" type="number">
     <button onclick="saveDownstream()">Next</button>
   `);
 }
 
 function saveDownstream() {
-  answers.downstream = document.getElementById("down").value;
+  answers.downstream = parseFloat(document.getElementById("down").value) || 0;
   showWidthOfInterest();
 }
 
 function showWidthOfInterest() {
   render(`
-    <h2>Width of Interest</h2>
-    <p>Enter width of interest (m):</p>
-    <input id="width" type="number" />
+    <h2>Width of Interest (m)</h2>
+    <input id="width" type="number">
     <button onclick="saveWidth()">Next</button>
   `);
 }
 
 function saveWidth() {
-  answers.width = document.getElementById("width").value;
+  answers.width = parseFloat(document.getElementById("width").value) || 0;
   showPrototypeDischarge();
 }
 
 // ----------------------------------------------------
-// HYDRAULICS QUESTIONS
+// HYDRAULICS
 // ----------------------------------------------------
 function showPrototypeDischarge() {
   render(`
-    <h2>Prototype Discharge</h2>
-    <p>Enter prototype discharge (m³/s):</p>
-    <input id="Qp" type="number" />
+    <h2>Prototype Discharge (m³/s)</h2>
+    <input id="Qp" type="number">
     <button onclick="saveDischarge()">Next</button>
   `);
 }
 
 function saveDischarge() {
-  answers.discharge = document.getElementById("Qp").value;
+  answers.discharge = parseFloat(document.getElementById("Qp").value) || 0;
   showBayLength();
 }
 
 function showBayLength() {
   render(`
-    <h2>Facility Bay Length</h2>
-    <p>Enter available bay length (m):</p>
-    <input id="bayL" type="number" />
+    <h2>Facility Length (m)</h2>
+    <input id="bayL" type="number">
     <button onclick="saveBayLength()">Next</button>
   `);
 }
 
 function saveBayLength() {
-  answers.bayLength = document.getElementById("bayL").value;
+  answers.bayLength = parseFloat(document.getElementById("bayL").value) || 0;
   showBayWidth();
 }
 
 function showBayWidth() {
   render(`
-    <h2>Facility Bay Width</h2>
-    <p>Enter available bay width (m):</p>
-    <input id="bayW" type="number" />
+    <h2>Facility Width (m)</h2>
+    <input id="bayW" type="number">
     <button onclick="saveBayWidth()">Next</button>
   `);
 }
 
 function saveBayWidth() {
-  answers.bayWidth = document.getElementById("bayW").value;
+  answers.bayWidth = parseFloat(document.getElementById("bayW").value) || 0;
   showAvailableFlow();
 }
 
 function showAvailableFlow() {
   render(`
-    <h2>Available Flow</h2>
-    <p>Enter available flow in the facility (L/s):</p>
-    <input id="Qavail" type="number" />
-    <button onclick="saveAvailableFlow()">Next</button>
+    <h2>Available Flow (L/s)</h2>
+    <input id="Qavail" type="number">
+    <button onclick="saveAvailableFlow()">Run Analysis</button>
   `);
 }
 
 function saveAvailableFlow() {
-  answers.availableFlow = document.getElementById("Qavail").value;
-  showSummary();
+  answers.availableFlow = parseFloat(document.getElementById("Qavail").value) || 0;
+  showResults();
 }
 
 // ----------------------------------------------------
-// SUMMARY
+// SCALE LOGIC
 // ----------------------------------------------------
-function showSummary() {
+function getScaleRange() {
+  if (answers.objective === "Scour") return [20, 80];
+  if (answers.riskLevel === "High") return [20, 100];
+  if (answers.designStage === "Concept") return [50, 200];
+  return [30, 150];
+}
+
+function computeScales() {
+  const Lp = answers.length + answers.upstream + answers.downstream;
+  const Wp = answers.width;
+  const Qp = answers.discharge;
+
+  const bayL = answers.bayLength;
+  const bayW = answers.bayWidth;
+  const Qavail = answers.availableFlow / 1000; // L/s → m³/s
+
+  const [minS, maxS] = getScaleRange();
+
+  const trial = [20, 30, 40, 50, 75, 100, 125, 150, 200];
+
+  const results = [];
+
+  trial.forEach(N => {
+    if (N < minS || N > maxS) return;
+
+    const Lm = Lp / N;
+    const Wm = Wp / N;
+    const Qm = Qp / Math.pow(N, 2.5);
+
+    const fitsGeo = (Lm <= bayL) && (Wm <= bayW);
+    const fitsFlow = Qm <= Qavail;
+
+    results.push({
+      N,
+      Lm,
+      Wm,
+      Qm,
+      fitsGeo,
+      fitsFlow,
+      pass: fitsGeo && fitsFlow
+    });
+  });
+
+  return results;
+}
+
+// ----------------------------------------------------
+// RESULTS DISPLAY
+// ----------------------------------------------------
+function showResults() {
+  const results = computeScales();
+  const passing = results.filter(r => r.pass);
+
+  let recommendation = "";
+
+  if (passing.length > 0) {
+    recommendation = `✅ Recommended Scale: 1:${passing[0].N}`;
+  } else {
+    const anyGeo = results.some(r => r.fitsGeo);
+    const anyFlow = results.some(r => r.fitsFlow);
+
+    if (!anyGeo && anyFlow) {
+      recommendation = "⚠ Geometry does not fit → Reduce extents or sectional model";
+    } else if (anyGeo && !anyFlow) {
+      recommendation = "⚠ Flow limited → Use coarser scale";
+    } else {
+      recommendation = "❌ Neither constraint satisfied → Consider distorted or sectional model";
+    }
+  }
+
+  let table = `
+    <table border="1" cellpadding="5">
+      <tr>
+        <th>Scale</th>
+        <th>Length (m)</th>
+        <th>Width (m)</th>
+        <th>Flow (m³/s)</th>
+        <th>Geo</th>
+        <th>Flow</th>
+        <th>Pass</th>
+      </tr>
+  `;
+
+  results.forEach(r => {
+    table += `
+      <tr>
+        <td>1:${r.N}</td>
+        <td>${r.Lm.toFixed(2)}</td>
+        <td>${r.Wm.toFixed(2)}</td>
+        <td>${r.Qm.toFixed(3)}</td>
+        <td>${r.fitsGeo ? "✅" : "❌"}</td>
+        <td>${r.fitsFlow ? "✅" : "❌"}</td>
+        <td>${r.pass ? "✅" : "❌"}</td>
+      </tr>
+    `;
+  });
+
+  table += "</table>";
+
   render(`
-    <h2>Summary of Inputs</h2>
-    <pre>${JSON.stringify(answers, null, 2)}</pre>
-    <p>This is where the real scale-selection logic will go.</p>
+    <h2>Scale Selection Results</h2>
+    <p>${recommendation}</p>
+    ${table}
     <button onclick="start()">Restart</button>
   `);
 }
 
 // ----------------------------------------------------
-// RENDER HELPER
+// RENDER
 // ----------------------------------------------------
 function render(html) {
   document.getElementById("app").innerHTML = html;
 }
+``
 
