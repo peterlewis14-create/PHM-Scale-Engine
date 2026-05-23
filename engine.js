@@ -59,12 +59,7 @@ function render(html) {
   `;
 
   let footer = `
-    <div style="
-      margin-top:30px;
-      font-size:12px;
-      color:#777;
-      text-align:right;
-    ">
+    <div style="margin-top:30px;font-size:12px;color:#777;text-align:right;">
       Tool build time: ${BUILD_TIMESTAMP}
     </div>
   `;
@@ -81,6 +76,39 @@ function buttonRow(nextFn) {
     </div>
   `;
 }
+
+////////////////////////////////////////////////////////
+// KNOWLEDGE BASE (NON-PRESCRIPTIVE)
+////////////////////////////////////////////////////////
+
+const KNOWLEDGE_BASE = {
+
+  hydraulics: {
+    title: "Hydraulic Modelling Considerations",
+    points: [
+      "Flow patterns and water surface profiles are generally well represented under Froude similarity.",
+      "Gravitational forces are preserved, but viscous effects are not fully replicated.",
+      "Turbulence behaviour may be influenced at smaller model scales."
+    ]
+  },
+
+  scour: {
+    title: "Scour and Sediment Transport Considerations",
+    points: [
+      "Sediment transport cannot simultaneously satisfy all scaling laws.",
+      "Results should be interpreted comparatively rather than as direct predictions.",
+      "Scour behaviour is sensitive to scale and model configuration."
+    ]
+  },
+
+  scaleEffects: {
+    title: "General Scale Effects",
+    points: [
+      "Surface tension and viscous forces become more significant at smaller scales.",
+      "Air entrainment and jet breakup processes may not fully reproduce prototype behaviour."
+    ]
+  }
+};
 
 ////////////////////////////////////////////////////////
 // PROJECT SPECIFICS
@@ -215,6 +243,37 @@ function computeScales() {
 }
 
 ////////////////////////////////////////////////////////
+// OBJECTIVE NOTES
+////////////////////////////////////////////////////////
+
+function buildObjectiveNotesHTML() {
+
+  let html = "<div class='reasoning'><h3>Engineering Modelling Considerations</h3>";
+
+  if (answers.objective === "Hydraulics") {
+    let kb = KNOWLEDGE_BASE.hydraulics;
+    html += "<p><b>" + kb.title + "</b></p><ul>";
+    kb.points.forEach(p => html += "<li>" + p + "</li>");
+    html += "</ul>";
+  }
+
+  if (answers.objective === "Scour") {
+    let kb = KNOWLEDGE_BASE.scour;
+    html += "<p><b>" + kb.title + "</b></p><ul>";
+    kb.points.forEach(p => html += "<li>" + p + "</li>");
+    html += "</ul>";
+  }
+
+  let kb2 = KNOWLEDGE_BASE.scaleEffects;
+  html += "<p><b>" + kb2.title + "</b></p><ul>";
+  kb2.points.forEach(p => html += "<li>" + p + "</li>");
+  html += "</ul>";
+
+  html += "</div>";
+  return html;
+}
+
+////////////////////////////////////////////////////////
 // RESULTS
 ////////////////////////////////////////////////////////
 
@@ -254,12 +313,10 @@ function showResults() {
     let geoUtil = (r.Lm / answers.bayLength * 100).toFixed(1);
     let flowUtil = (r.Qm / (answers.availableFlow/1000) * 100).toFixed(1);
 
-    // ✅ Governing constraint
-    let governing = "";
-    if(flowUtil > geoUtil) governing = "Flow capacity limits scale";
-    else governing = "Facility geometry limits scale";
+    let governing = (flowUtil > geoUtil)
+      ? "Flow capacity limits achievable model scale"
+      : "Facility geometry limits achievable model scale";
 
-    // ✅ Confidence (corrected)
     let confidence = "";
     if(r.N <= 40) confidence = "High";
     else if(r.N <= 70) confidence = "Moderate";
@@ -269,10 +326,16 @@ function showResults() {
     html += "<h3>Assessment Summary</h3>";
     html += "<p><b>Governing factor:</b> " + governing + "</p>";
     html += "<p><b>Confidence:</b> " + confidence + "</p>";
+
+    html += "<p><i>Confidence is primarily based on achievable model scale. ";
+    html += "Larger physical models generally provide improved representation of hydraulic processes.</i></p>";
+
     html += "<p><b>Geometry utilisation:</b> " + geoUtil + "%</p>";
     html += "<p><b>Flow utilisation:</b> " + flowUtil + "%</p>";
     html += "</div>";
   }
+
+  html += buildObjectiveNotesHTML();
 
   html += `
     <div style="display:flex; justify-content:space-between; margin-top:20px;">
