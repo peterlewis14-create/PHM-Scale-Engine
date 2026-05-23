@@ -234,21 +234,34 @@ function showResults() {
 
   html += "</table>";
 
-  // UTILISATION BARS
-  if (selectedIndex >= 0) {
-    let r = results[selectedIndex];
+// UTILISATION BARS WITH COLOUR THRESHOLDS
+if (selectedIndex >= 0) {
+  let r = results[selectedIndex];
 
-    let geoUtil = ((r.Lm / answers.bayLength) * 100).toFixed(0);
-    let flowUtil = ((r.Qm / (answers.availableFlow / 1000)) * 100).toFixed(0);
+  let geoUtil = ((r.Lm / answers.bayLength) * 100);
+  let flowUtil = ((r.Qm / (answers.availableFlow / 1000)) * 100);
 
-    html += "<h3>Utilisation</h3>";
-
-    html += "Geometry: " + geoUtil + "%";
-    html += "<div class='progress-bar'><div class='progress-fill' style='width:" + geoUtil + "%'></div></div>";
-
-    html += "Flow: " + flowUtil + "%";
-    html += "<div class='progress-bar'><div class='progress-fill' style='width:" + flowUtil + "%'></div></div>";
+  function getColor(u) {
+    if (u < 80) return "#28a745";       // Green
+    if (u < 95) return "#ffc107";       // Amber
+    return "#dc3545";                   // Red
   }
+
+  let geoColor = getColor(geoUtil);
+  let flowColor = getColor(flowUtil);
+
+  html += "<h3>Utilisation</h3>";
+
+  html += "<p>Geometry: " + geoUtil.toFixed(0) + "%</p>";
+  html += "<div class='progress-bar'>";
+  html += "<div class='progress-fill' style='width:" + geoUtil + "%; background:" + geoColor + "'></div>";
+  html += "</div>";
+
+  html += "<p>Flow: " + flowUtil.toFixed(0) + "%</p>";
+  html += "<div class='progress-bar'>";
+  html += "<div class='progress-fill' style='width:" + flowUtil + "%; background:" + flowColor + "'></div>";
+  html += "</div>";
+}
 
   html += "<br><button onclick='start()'>Restart</button>";
 
