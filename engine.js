@@ -1,8 +1,8 @@
 // -------------------------------
-// VERSION + REVISION CONTROL
+// VERSION CONTROL
 // -------------------------------
-const VERSION = "v1.2";
-const REVISION = "R3";
+const VERSION = "v1.3";
+const REVISION = "R4";
 const LAST_UPDATED = "23 May 2026";
 
 // -------------------------------
@@ -55,13 +55,8 @@ function render(html) {
   `;
 
   let footer = `
-    <div style="
-      margin-top:30px;
-      font-size:12px;
-      color:#777;
-      text-align:right;
-    ">
-      PHM Scale Tool ${VERSION} | Revision ${REVISION} | Updated ${LAST_UPDATED}
+    <div class="footer">
+      PHM Scale Tool ${VERSION} | ${REVISION} | Updated ${LAST_UPDATED}
     </div>
   `;
 
@@ -79,7 +74,7 @@ function buttonRow(nextFn) {
 }
 
 ////////////////////////////////////////////////////////
-// KNOWLEDGE BASE
+// KNOWLEDGE BASE (NON-PRESCRIPTIVE)
 ////////////////////////////////////////////////////////
 
 const KNOWLEDGE_BASE = {
@@ -87,26 +82,26 @@ const KNOWLEDGE_BASE = {
   hydraulics: {
     title: "Hydraulic Modelling Considerations",
     points: [
-      "Flow patterns are generally well represented under Froude similarity.",
-      "Viscous effects are not fully preserved.",
-      "Turbulence behaviour may vary at smaller scales."
+      "Flow patterns and water surface profiles are generally well represented under Froude similarity.",
+      "Viscous effects are not fully preserved due to Reynolds number mismatch.",
+      "Turbulence behaviour may vary depending on achievable model scale."
     ]
   },
 
   scour: {
     title: "Scour and Sediment Transport Considerations",
     points: [
-      "Sediment transport cannot satisfy all similarity laws simultaneously.",
-      "Results should be interpreted comparatively.",
-      "Scour is scale sensitive."
+      "Sediment transport cannot satisfy all similarity relationships simultaneously.",
+      "Model results should be interpreted comparatively rather than as direct prototype prediction.",
+      "Scour behaviour is sensitive to scale and model configuration."
     ]
   },
 
   scaleEffects: {
     title: "General Scale Effects",
     points: [
-      "Surface tension becomes more significant at small scales.",
-      "Air entrainment may not fully reproduce prototype conditions."
+      "Surface tension and viscosity become more significant at smaller scales.",
+      "Air entrainment and jet breakup processes may not fully reproduce prototype conditions."
     ]
   }
 };
@@ -116,22 +111,22 @@ const KNOWLEDGE_BASE = {
 ////////////////////////////////////////////////////////
 
 function showProjectSpecifics() {
-  let html = "<h2>Project Specifics</h2>";
+  let html = "<h2>Step 1 – Project Specifics</h2>";
 
   html += `
-    <label>Design Stage</label><br>
+    <label>Design Stage</label>
     <select id="stage">
       <option ${answers.designStage==="Concept"?"selected":""}>Concept</option>
       <option ${answers.designStage==="Detailed"?"selected":""}>Detailed</option>
-    </select><br><br>
+    </select>
 
-    <label>Project Risk Level</label><br>
+    <label>Project Risk Level</label>
     <select id="risk">
       <option ${answers.riskLevel==="Low"?"selected":""}>Low</option>
       <option ${answers.riskLevel==="High"?"selected":""}>High</option>
-    </select><br><br>
+    </select>
 
-    <label>Project Focus</label><br>
+    <label>Project Focus</label>
     <select id="focus">
       <option ${answers.objective==="Hydraulics"?"selected":""}>Hydraulics</option>
       <option ${answers.objective==="Scour"?"selected":""}>Scour</option>
@@ -158,14 +153,23 @@ function saveProjectSpecifics() {
 ////////////////////////////////////////////////////////
 
 function showPrototypeDetails() {
-  let html = "<h2>Prototype Details</h2>";
+  let html = "<h2>Step 2 – Prototype Details</h2>";
 
   html += `
-    <label>Total Length (m)</label><input id="len" value="${answers.length || ""}"><br>
-    <label>Upstream (m)</label><input id="up" value="${answers.upstream || ""}"><br>
-    <label>Downstream (m)</label><input id="down" value="${answers.downstream || ""}"><br>
-    <label>Width (m)</label><input id="width" value="${answers.width || ""}"><br>
-    <label>Discharge (m³/s)</label><input id="Qp" value="${answers.discharge || ""}">
+    <label>Total Structure Length (m)</label>
+    <input id="len" value="${answers.length || ""}">
+
+    <label>Upstream Extent (m)</label>
+    <input id="up" value="${answers.upstream || ""}">
+
+    <label>Downstream Extent (m)</label>
+    <input id="down" value="${answers.downstream || ""}">
+
+    <label>Width of Interest (m)</label>
+    <input id="width" value="${answers.width || ""}">
+
+    <label>Prototype Discharge (m³/s)</label>
+    <input id="Qp" value="${answers.discharge || ""}">
   `;
 
   html += buttonRow("savePrototypeDetails()");
@@ -190,12 +194,17 @@ function savePrototypeDetails() {
 ////////////////////////////////////////////////////////
 
 function showLab() {
-  let html = "<h2>Laboratory Conditions</h2>";
+  let html = "<h2>Step 3 – Laboratory Conditions</h2>";
 
   html += `
-    <label>Bay Length (m)</label><input id="bayL" value="${answers.bayLength || ""}"><br>
-    <label>Bay Width (m)</label><input id="bayW" value="${answers.bayWidth || ""}"><br>
-    <label>Available Flow (L/s)</label><input id="Qavail" value="${answers.availableFlow || ""}">
+    <label>Available Bay Length (m)</label>
+    <input id="bayL" value="${answers.bayLength || ""}">
+
+    <label>Available Bay Width (m)</label>
+    <input id="bayW" value="${answers.bayWidth || ""}">
+
+    <label>Available Flow Supply (L/s)</label>
+    <input id="Qavail" value="${answers.availableFlow || ""}">
   `;
 
   html += buttonRow("saveLab()");
@@ -214,15 +223,17 @@ function saveLab() {
 }
 
 ////////////////////////////////////////////////////////
-// SCALE CALC
+// SCALE CALCULATION
 ////////////////////////////////////////////////////////
 
 function computeScales() {
   const Lp = (answers.length||0)+(answers.upstream||0)+(answers.downstream||0);
-  const Qp = answers.discharge||0;
-  const bayL = answers.bayLength||0;
-  const bayW = answers.bayWidth||0;
-  const Qavail = (answers.availableFlow||0)/1000;
+  const Wp = answers.width || 0;
+  const Qp = answers.discharge || 0;
+
+  const bayL = answers.bayLength || 0;
+  const bayW = answers.bayWidth || 0;
+  const Qavail = (answers.availableFlow || 0) / 1000;
 
   const scales=[20,30,40,50,60,70,80,90,100];
   const results=[];
@@ -231,7 +242,7 @@ function computeScales() {
     let N=scales[i];
 
     let Lm=Lp/N;
-    let Wm=(answers.width||0)/N;
+    let Wm=Wp/N;
     let Qm=Qp/Math.pow(N,2.5);
 
     let fitsGeo=(Lm<=bayL)&&(Wm<=bayW);
@@ -244,18 +255,52 @@ function computeScales() {
 }
 
 ////////////////////////////////////////////////////////
-// RESULTS (with confidence + notes)
+// OBJECTIVE NOTES
+////////////////////////////////////////////////////////
+
+function buildObjectiveNotesHTML() {
+
+  let html = "<div class='reasoning'><h3>Engineering Modelling Considerations</h3>";
+
+  if (answers.objective === "Hydraulics") {
+    let kb = KNOWLEDGE_BASE.hydraulics;
+    html += "<p><b>" + kb.title + "</b></p><ul>";
+    kb.points.forEach(p => html += "<li>"+p+"</li>");
+    html += "</ul>";
+  }
+
+  if (answers.objective === "Scour") {
+    let kb = KNOWLEDGE_BASE.scour;
+    html += "<p><b>" + kb.title + "</b></p><ul>";
+    kb.points.forEach(p => html += "<li>"+p+"</li>");
+    html += "</ul>";
+  }
+
+  let kb2 = KNOWLEDGE_BASE.scaleEffects;
+  html += "<p><b>" + kb2.title + "</b></p><ul>";
+  kb2.points.forEach(p => html += "<li>"+p+"</li>");
+  html += "</ul>";
+
+  html += "</div>";
+  return html;
+}
+
+////////////////////////////////////////////////////////
+// RESULTS
 ////////////////////////////////////////////////////////
 
 function showResults() {
   const results=computeScales();
 
+  // ✅ Select largest feasible model (smallest N)
   let selected = results.findIndex(r => r.pass);
 
   let html="<h2>Scale Assessment & Recommendation</h2>";
 
   if(selected>=0){
-    html += `<div class="recommend">✅ Recommended Scale: 1:${results[selected].N}</div>`;
+    html += `<div class="recommend">RECOMMENDED SCALE<br>1:${results[selected].N}</div>`;
+  } else {
+    html += `<div class="recommend">No feasible scale within laboratory limits</div>`;
   }
 
   html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>";
@@ -281,16 +326,27 @@ function showResults() {
     let geoUtil = (r.Lm / answers.bayLength * 100).toFixed(1);
     let flowUtil = (r.Qm / (answers.availableFlow/1000) * 100).toFixed(1);
 
-    let confidence = r.N <= 40 ? "High" : (r.N <= 70 ? "Moderate" : "Lower");
+    let governing = (flowUtil > geoUtil)
+      ? "Flow capacity limits achievable model scale"
+      : "Facility geometry limits achievable model scale";
+
+    let confidenceClass = r.N <= 40 ? "conf-high"
+      : (r.N <= 70 ? "conf-moderate" : "conf-low");
+
+    let confidenceText = r.N <= 40 ? "High"
+      : (r.N <= 70 ? "Moderate" : "Lower");
 
     html += "<div class='reasoning'>";
     html += "<h3>Assessment Summary</h3>";
-    html += "<p><b>Confidence:</b> " + confidence + "</p>";
-    html += "<p><i>Confidence is primarily based on achievable model scale. Larger physical models generally provide improved hydraulic representation.</i></p>";
-    html += "<p>Geometry utilisation: " + geoUtil + "%</p>";
-    html += "<p>Flow utilisation: " + flowUtil + "%</p>";
+    html += `<p><b>⚙ Governing factor:</b> ${governing}</p>`;
+    html += `<p><b>📊 Confidence:</b> <span class='${confidenceClass}'>${confidenceText}</span></p>`;
+    html += "<p><i>Confidence is primarily driven by achievable model scale. Larger physical models generally provide improved representation of hydraulic processes.</i></p>";
+    html += `<p>Geometry utilisation: ${geoUtil}%</p>`;
+    html += `<p>Flow utilisation: ${flowUtil}%</p>`;
     html += "</div>";
   }
+
+  html += buildObjectiveNotesHTML();
 
   html += `
     <div style="display:flex; justify-content:space-between; margin-top:20px;">
