@@ -1,307 +1,207 @@
-let chartInstance = null;
+const state={step:1};
 
-// ================= STATE =================
-const state = {
-  step: 1,
-  project: {},
-  prototype: {},
-  lab: {},
-  results: {}
+// ---------- INIT ----------
+window.onload=()=>{
+init();
 };
 
-// ================= CONFIG =================
-const OPTIONS = {
-  stage: ["Concept","Preliminary","Detailed"],
-  risk: ["Low","Moderate","High"],
-  objectives: [
-    "General hydraulics",
-    "Scour / sediment transport",
-    "Energy dissipation",
-    "Air entrainment",
-    "Uplift pressures"
-  ]
-};
+function init(){
+["Concept","Preliminary","Detailed"]
+.forEach(v=>add("stage",v));
 
-// ================= INIT =================
-window.onload = () => {
-  populateInputs();
-};
+["Low","Moderate","High"]
+.forEach(v=>add("risk",v));
 
-// ================= UI INIT =================
-function populateInputs(){
-  OPTIONS.stage.forEach(s => addOption("stage", s));
-  OPTIONS.risk.forEach(r => addOption("risk", r));
+let objs=[
+"General hydraulics",
+"Scour / sediment transport",
+"Energy dissipation",
+"Air entrainment",
+"Uplift pressures"
+];
 
-  let html="";
-  OPTIONS.objectives.forEach(o=>{
-    html+=`<label><input type="checkbox" class="obj" value="${o}"> ${o}</label>`;
-  });
-  document.getElementById("objectives").innerHTML = html;
+objectives.innerHTML=objs.map(o=>
+`<label><input type="checkbox" value="${o}"> ${o}</label>`
+).join("");
 }
 
-function addOption(id,val){
-  let opt = document.createElement("option");
-  opt.textContent = val;
-  document.getElementById(id).appendChild(opt);
+function add(id,val){
+let o=document.createElement("option");
+o.textContent=val;
+document.getElementById(id).appendChild(o);
 }
 
-function renderChart(scales, best) {
-
-  const labels = scales.map(s => s.N);
-
-  const geo = scales.map(s => s.geoUtil);
-  const flow = scales.map(s => s.flowUtil);
-  const feasible = scales.map(s => s.feasible ? 1 : 0);
-
-  const ctx = document.getElementById("chart").getContext("2d");
-
-  if (chartInstance) chartInstance.destroy();
-
-  chartInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Geometry Utilisation (%)",
-          data: geo,
-          borderColor: "#0078d4",
-          tension: 0.3
-        },
-        {
-          label: "Flow Utilisation (%)",
-          data: flow,
-          borderColor: "#00a36c",
-          tension: 0.3
-        },
-        {
-          label: "Feasible",
-          data: feasible,
-          borderColor: "#888",
-          borderDash: [5, 5],
-          yAxisID: 'y2'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "bottom" }
-      },
-      scales: {
-        y: {
-          title: { display: true, text: "Utilisation (%)" },
-          min: 0,
-          max: 120
-        },
-        y2: {
-          position: 'right',
-          min: 0,
-          max: 1,
-          ticks: { callback: v => v === 1 ? "Yes" : "No" }
-        }
-      }
-    }
-  });
-}
-
-
-// ================= NAV =================
-function nextStep(n){
-  if(!validateStep(n)) return;
-  toggle(n,n+1);
-}
-function prevStep(n){ toggle(n,n-1); }
+// ---------- NAV ----------
+function next(n){toggle(n,n+1)}
+function back(n){toggle(n,n-1)}
 
 function toggle(a,b){
-  document.getElementById("step"+a).classList.add("hidden");
-  document.getElementById("step"+b).classList.remove("hidden");
-  document.getElementById("currentStep").innerText=b;
+document.getElementById("step"+a).classList.add("hidden");
+document.getElementById("step"+b).classList.remove("hidden");
+stepNo.innerText=b;
 }
 
-// ================= VALIDATION =================
-function validateStep(step){
-  if(step === 2){
-    let Hmax = +HmaxEl.value;
-    let Elev = +Elev.value;
-    if(Hmax <= Elev){
-      alert("Headwater must exceed elevation"); return false;
-    }
-  }
-  return true;
+// ---------- CORE ----------
+function run(){
+
+let p={
+L:+Lp.value,W:+Wp.value,Q:+Qp.value,
+H:+Hmax.value,E:+Elev.value
+};
+
+let lab={
+L:+Lb.value,W:+Wb.value,H:+Hb.value,Q:+Qb.value
+};
+
+let scales=[];
+
+for(let N=5;N<=100;N+=5){
+
+let Lm=p.L/N;
+let Wm=p.W/N;
+let Qm=(p.Q/Math.pow(N,2.5))*1000;
+let Hm=((p.H-p.E)/N)+0.2;
+
+let geo=Lm<=lab.L && Wm<=lab.W;
+let flow=Qm<=lab.Q;
+let height=Hm<=lab.H;
+let feasible=geo && flow && height;
+
+let geoUtil=(Lm/lab.L)*100;
+let flowUtil=(Qm/lab.Q)*100;
+
+scales.push({N,Lm,Wm,Hm,Qm,geo,flow,height,feasible,geoUtil,flowUtil});
 }
 
-// ================= CALCULATION =================
-function runCalculation(){
+let feasible=scales.filter(s=>s.feasible);
 
-  const p = {
-    L:+Lp.value, W:+Wp.value, Q:+Qp.value,
-    Hmax:+Hmax.value, Elev:+Elev.value
-  };
+let best=feasible.find(s=>
+s.N<=60 &&
+s.geoUtil>70 && s.geoUtil<90 &&
+s.flowUtil>70 && s.flowUtil<90
+) || feasible[0];
 
-  const lab = {
-    L:+Lb.value, W:+Wb.value, H:+Hb.value, Q:+Qb.value
-  };
+render(scales,best);
 
-  const objectives = [...document.querySelectorAll(".obj:checked")]
-    .map(o=>o.value);
-
-  let scales=[];
-
-  for(let N=5;N<=100;N+=5){
-    let Lm=p.L/N;
-    let Wm=p.W/N;
-    let Qm=(p.Q/Math.pow(N,2.5))*1000;
-    let Hm=((p.Hmax-p.Elev)/N)+0.2;
-
-    let geo=Lm<=lab.L && Wm<=lab.W;
-    let flow=Qm<=lab.Q;
-    let height=Hm<=lab.H;
-    let feasible=geo && flow && height;
-
-    let geoUtil=(Lm/lab.L)*100;
-    let flowUtil=(Qm/lab.Q)*100;
-
-    scales.push({N,Lm,Wm,Qm,Hm,geo,flow,height,feasible,geoUtil,flowUtil});
-  }
-
-  const feasible = scales.filter(s=>s.feasible);
-
-  const best = selectBest(feasible);
-
-  const infeasibleAbove = scales.filter(s=>!s.feasible && s.N < best.N).slice(0,3);
-  const alt = feasible.filter(s=>s.N!==best.N).slice(0,3);
-
-  state.results = {scales,best,infeasibleAbove,alt,objectives};
-
-  render();
-  toggle(3,4);
+toggle(3,4);
 }
 
-// ================= SELECTION =================
-function selectBest(feasible){
-  let ranked = feasible.sort((a,b)=>a.N-b.N);
+// ---------- RENDER ----------
+function render(scales,best){
 
-  return ranked.find(s =>
-    s.N<=60 &&
-    s.geoUtil>=70 && s.geoUtil<=90 &&
-    s.flowUtil>=70 && s.flowUtil<=90
-  ) || ranked[0];
+scaleOut.innerText="1:"+best.N;
+
+summary.innerHTML=`
+<b>Constraint:</b> ${
+!best.geo ? "Geometry":
+!best.flow?"Flow":
+!best.height?"Height":"Balanced"
+}<br>
+<b>Confidence:</b> ${
+best.N<=50?"High":
+best.N<=70?"Moderate":"Lower"
+}
+`;
+
+alternatives.innerHTML=`
+<b>Alternatives:</b><br>
+${scales.filter(s=>s.feasible && s.N!==best.N).slice(0,3)
+.map(s=>"1:"+s.N).join(", ")}`;
+
+renderTable(scales,best);
+renderChart(scales,best);
+renderWarnings(best);
 }
 
-// ================= RULE ENGINE =================
-const rules = [
+// ---------- TABLE ----------
+function renderTable(scales,best){
+let html="<table><tr><th>Scale</th><th>L</th><th>W</th><th>H</th><th>Q</th><th>Status</th></tr>";
+
+scales.forEach(s=>{
+html+=`<tr class="${s.N===best.N?"selected":""}">
+<td>1:${s.N}</td>
+<td>${s.Lm.toFixed(2)}</td>
+<td>${s.Wm.toFixed(2)}</td>
+<td>${s.Hm.toFixed(2)}</td>
+<td>${s.Qm.toFixed(0)}</td>
+<td>${s.feasible?"✅":"❌"}</td>
+</tr>`;
+});
+
+html+="</table>";
+table.innerHTML=html;
+}
+
+// ---------- CHART ----------
+let chart;
+
+function renderChart(scales,best){
+
+let ctx=document.getElementById("chart");
+
+if(chart) chart.destroy();
+
+chart=new Chart(ctx,{
+type:"line",
+data:{
+labels:scales.map(s=>s.N),
+datasets:[
 {
-  triggers:{ objectives:["Scour / sediment transport"], scale_max:50 },
-  message:"Scale may be too small for sediment transport processes.",
-  priority:"high"
+label:"Geometry %",
+data:scales.map(s=>s.geoUtil),
+borderColor:"#0078d4"
 },
 {
-  triggers:{ risk:["High"], scale_min:40 },
-  message:"High-risk project – consider larger scale.",
-  priority:"medium"
+label:"Flow %",
+data:scales.map(s=>s.flowUtil),
+borderColor:"#00a36c"
+}
+]
+},
+options:{
+plugins:{legend:{position:"bottom"}}
+}
+});
+}
+
+// ---------- WARNINGS ----------
+const rules=[
+{
+triggers:{scale_max:50},
+message:"Scale may be too small for sediment transport",
+priority:"high"
 }
 ];
 
-function applyRules(best, objectives){
-  let matches=[];
-
-  rules.forEach(r=>{
-    let ok=true;
-
-    if(r.triggers.objectives){
-      ok = r.triggers.objectives.some(o=>objectives.includes(o));
-    }
-
-    if(r.triggers.scale_max && best.N > r.triggers.scale_max) ok=true;
-    if(r.triggers.scale_min && best.N < r.triggers.scale_min) ok=true;
-
-    if(ok) matches.push(r);
-  });
-
-  return matches.sort(pSort);
+function renderWarnings(best){
+let html="";
+rules.forEach(r=>{
+if(r.triggers.scale_max && best.N>r.triggers.scale_max){
+html+=`<div class="warning ${r.priority}">${r.message}</div>`;
+}
+});
+warnings.innerHTML=html;
 }
 
-function pSort(a,b){
-  return ["high","medium","info"].indexOf(a.priority)
-       - ["high","medium","info"].indexOf(b.priority);
-}
-
-// ================= RENDER =================
-function render(){
-  let {scales,best,infeasibleAbove,alt,objectives} = state.results;
-
-  recommend.innerText=`1:${best.N}`;
-
-  constraint.innerHTML =
-    `<b>Governing:</b> ${
-      !best.geo ? "Geometry" :
-      !best.flow ? "Flow" :
-      !best.height ? "Height" : "Balanced"
-    }`;
-
-  confidence.innerHTML = `<b>Confidence:</b> ${
-    best.N <=50 ? "High" :
-    best.N <=70 ? "Moderate" : "Lower"
-  }`;
-
-  utilisation.innerHTML = `
-    Geometry ${best.geoUtil.toFixed(0)}%
-    <div class="progress"><div class="progress-bar" style="width:${best.geoUtil}%"></div></div>
-    Flow ${best.flowUtil.toFixed(0)}%
-    <div class="progress"><div class="progress-bar" style="width:${best.flowUtil}%"></div></div>
-  `;
-
-  alternatives.innerHTML = `
-    <b>Alternatives:</b><br>
-    Feasible: ${alt.map(a=>"1:"+a.N).join(", ")}<br>
-    Larger (infeasible): ${infeasibleAbove.map(a=>"1:"+a.N).join(", ")}
-  `;
-
-  let table=`<table><tr>
-  <th>Scale</th><th>L</th><th>W</th><th>H</th><th>Q</th>
-  <th>Geom</th><th>Flow</th><th>Height</th><th>Status</th></tr>`;
-
-  scales.forEach(s=>{
-    table+=`<tr class='${s.N===best.N?"selected":""}'>
-    <td>1:${s.N}</td>
-    <td>${s.Lm.toFixed(2)}</td>
-    <td>${s.Wm.toFixed(2)}</td>
-    <td>${s.Hm.toFixed(2)}</td>
-    <td>${s.Qm.toFixed(0)}</td>
-    <td>${s.geo?'✅':'❌'}</td>
-    <td>${s.flow?'✅':'❌'}</td>
-    <td>${s.height?'✅':'❌'}</td>
-    <td>${s.feasible?'Feasible':'Fail'}</td>
-    </tr>`;
-  });
-
-  table+="</table>";
-  document.getElementById("table").innerHTML=table;
-
-  let warn = applyRules(best,objectives);
-  warnings.innerHTML = warn.map(w =>
-    `<div class='warning ${w.priority}'>[${w.priority.toUpperCase()}] ${w.message}</div>`
-  ).join("");
-}
-
-// ================= EXPORT =================
+// ---------- EXPORT ----------
 function exportReport(){
-  const b=state.results.best;
-  const txt = `
-Hydraulic Model Scale Report
----------------------------
-Recommended Scale: 1:${b.N}
+let txt=`
+Hydraulic Model Report
+----------------------
+Recommended Scale: ${scaleOut.innerText}
 
-Governing Constraint: ${constraint.innerText}
+${summary.innerText}
+
+Alternatives:
+${alternatives.innerText}
 
 Warnings:
 ${warnings.innerText}
 `;
 
-  let blob=new Blob([txt],{type:"text/plain"});
-  let a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=\"report.txt\";
-  a.click();
+let blob=new Blob([txt]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="report.txt";
+a.click();
 }
