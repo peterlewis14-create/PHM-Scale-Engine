@@ -178,7 +178,7 @@ function computeScales() {
   const results = [];
 
   for (let i = 0; i < scales.length; i++) {
-    let N = scales[i;
+    let N = scales[i];
 
     let Lm = Lp / N;
     let Wm = Wp / N;
