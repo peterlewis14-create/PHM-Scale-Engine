@@ -1,359 +1,230 @@
-// -------------------------------
-// VERSION CONTROL
-// -------------------------------
-const VERSION = "v1.3";
-const REVISION = "R4";
+const VERSION = "v1.4";
+const REVISION = "R1";
 const LAST_UPDATED = "23 May 2026";
 
-// -------------------------------
 const answers = {};
 let currentStep = 1;
 let totalSteps = 5;
-
 let historyStack = [];
 
-// -------------------------------
 function start() {
   currentStep = 1;
   historyStack = [];
-  showProjectSpecifics();
+  showProject();
 }
 
-// -------------------------------
-function saveState(fn) {
-  const snapshot = JSON.parse(JSON.stringify(answers));
+function saveState(fn){
   historyStack.push({
     step: currentStep,
-    answers: snapshot,
-    fn: fn
+    answers: JSON.parse(JSON.stringify(answers)),
+    fn
   });
 }
 
-// -------------------------------
-function goBack() {
-  if (historyStack.length === 0) return;
+function goBack(){
+  let prev = historyStack.pop();
+  if(!prev) return;
 
-  const prev = historyStack.pop();
   Object.assign(answers, prev.answers);
   currentStep = prev.step;
   prev.fn();
 }
 
-// -------------------------------
-function render(html) {
-  const app = document.getElementById("app");
+function render(html){
 
-  const percent = Math.round((currentStep / totalSteps) * 100);
+  let percent = Math.round((currentStep/totalSteps)*100);
 
-  let progress = `
+  let layout = `
     <div class="progress-container">
       Step ${currentStep} of ${totalSteps}
       <div class="progress-bar">
         <div class="progress-fill" style="width:${percent}%"></div>
       </div>
     </div>
-  `;
 
-  let footer = `
+    ${html}
+
     <div class="footer">
       PHM Scale Tool ${VERSION} | ${REVISION} | Updated ${LAST_UPDATED}
     </div>
   `;
 
-  app.innerHTML = progress + html + footer;
+  document.getElementById("app").innerHTML = layout;
 }
 
-// -------------------------------
-function buttonRow(nextFn) {
+function buttons(next){
   return `
-    <div style="display:flex; justify-content:space-between; margin-top:20px;">
-      ${historyStack.length > 0 ? `<button onclick="goBack()">Back</button>` : `<div></div>`}
-      <button onclick="${nextFn}">Next</button>
-    </div>
-  `;
+  <div style="display:flex; justify-content:space-between; margin-top:20px;">
+    ${historyStack.length?'<button onclick="goBack()">Back</button>':'<div></div>'}
+    <button onclick="${next}">Next</button>
+  </div>`;
 }
 
-////////////////////////////////////////////////////////
-// KNOWLEDGE BASE (NON-PRESCRIPTIVE)
-////////////////////////////////////////////////////////
+/* ---------------------------------- */
 
-const KNOWLEDGE_BASE = {
+function showProject(){
+  let html = `<h2>Step 1 – Project</h2>
 
-  hydraulics: {
-    title: "Hydraulic Modelling Considerations",
-    points: [
-      "Flow patterns and water surface profiles are generally well represented under Froude similarity.",
-      "Viscous effects are not fully preserved due to Reynolds number mismatch.",
-      "Turbulence behaviour may vary depending on achievable model scale."
-    ]
-  },
+  <label>Project Focus</label>
+  <select id="focus">
+    <option>Hydraulics</option>
+    <option>Scour</option>
+  </select>`;
 
-  scour: {
-    title: "Scour and Sediment Transport Considerations",
-    points: [
-      "Sediment transport cannot satisfy all similarity relationships simultaneously.",
-      "Model results should be interpreted comparatively rather than as direct prototype prediction.",
-      "Scour behaviour is sensitive to scale and model configuration."
-    ]
-  },
-
-  scaleEffects: {
-    title: "General Scale Effects",
-    points: [
-      "Surface tension and viscosity become more significant at smaller scales.",
-      "Air entrainment and jet breakup processes may not fully reproduce prototype conditions."
-    ]
-  }
-};
-
-////////////////////////////////////////////////////////
-// PROJECT SPECIFICS
-////////////////////////////////////////////////////////
-
-function showProjectSpecifics() {
-  let html = "<h2>Step 1 – Project Specifics</h2>";
-
-  html += `
-    <label>Design Stage</label>
-    <select id="stage">
-      <option ${answers.designStage==="Concept"?"selected":""}>Concept</option>
-      <option ${answers.designStage==="Detailed"?"selected":""}>Detailed</option>
-    </select>
-
-    <label>Project Risk Level</label>
-    <select id="risk">
-      <option ${answers.riskLevel==="Low"?"selected":""}>Low</option>
-      <option ${answers.riskLevel==="High"?"selected":""}>High</option>
-    </select>
-
-    <label>Project Focus</label>
-    <select id="focus">
-      <option ${answers.objective==="Hydraulics"?"selected":""}>Hydraulics</option>
-      <option ${answers.objective==="Scour"?"selected":""}>Scour</option>
-    </select>
-  `;
-
-  html += buttonRow("saveProjectSpecifics()");
+  html += buttons("saveProject()");
   render(html);
 }
 
-function saveProjectSpecifics() {
-  saveState(showProjectSpecifics);
+function saveProject(){
+  saveState(showProject);
 
-  answers.designStage = stage.value;
-  answers.riskLevel = risk.value;
   answers.objective = focus.value;
-
   currentStep++;
-  showPrototypeDetails();
+  showPrototype();
 }
 
-////////////////////////////////////////////////////////
-// PROTOTYPE DETAILS
-////////////////////////////////////////////////////////
+/* ---------------------------------- */
 
-function showPrototypeDetails() {
-  let html = "<h2>Step 2 – Prototype Details</h2>";
+function showPrototype(){
+  let html = `<h2>Step 2 – Prototype</h2>
 
-  html += `
-    <label>Total Structure Length (m)</label>
-    <input id="len" value="${answers.length || ""}">
+  <label>Total Length (m)</label><input id="len">
+  <label>Width (m)</label><input id="width">
+  <label>Flow (m³/s)</label><input id="Q">`;
 
-    <label>Upstream Extent (m)</label>
-    <input id="up" value="${answers.upstream || ""}">
-
-    <label>Downstream Extent (m)</label>
-    <input id="down" value="${answers.downstream || ""}">
-
-    <label>Width of Interest (m)</label>
-    <input id="width" value="${answers.width || ""}">
-
-    <label>Prototype Discharge (m³/s)</label>
-    <input id="Qp" value="${answers.discharge || ""}">
-  `;
-
-  html += buttonRow("savePrototypeDetails()");
+  html += buttons("savePrototype()");
   render(html);
 }
 
-function savePrototypeDetails() {
-  saveState(showPrototypeDetails);
+function savePrototype(){
+  saveState(showPrototype);
 
-  answers.length = parseFloat(len.value) || 0;
-  answers.upstream = parseFloat(up.value) || 0;
-  answers.downstream = parseFloat(down.value) || 0;
-  answers.width = parseFloat(width.value) || 0;
-  answers.discharge = parseFloat(Qp.value) || 0;
+  answers.length=len.value;
+  answers.width=width.value;
+  answers.discharge=Q.value;
 
   currentStep++;
   showLab();
 }
 
-////////////////////////////////////////////////////////
-// LAB CONDITIONS
-////////////////////////////////////////////////////////
+/* ---------------------------------- */
 
-function showLab() {
-  let html = "<h2>Step 3 – Laboratory Conditions</h2>";
+function showLab(){
+  let html = `<h2>Step 3 – Laboratory</h2>
 
-  html += `
-    <label>Available Bay Length (m)</label>
-    <input id="bayL" value="${answers.bayLength || ""}">
+  <label>Bay Length (m)</label><input id="bayL">
+  <label>Bay Width (m)</label><input id="bayW">
+  <label>Flow (L/s)</label><input id="Qavail">`;
 
-    <label>Available Bay Width (m)</label>
-    <input id="bayW" value="${answers.bayWidth || ""}">
-
-    <label>Available Flow Supply (L/s)</label>
-    <input id="Qavail" value="${answers.availableFlow || ""}">
-  `;
-
-  html += buttonRow("saveLab()");
+  html += buttons("saveLab()");
   render(html);
 }
 
-function saveLab() {
+function saveLab(){
   saveState(showLab);
 
-  answers.bayLength = parseFloat(bayL.value) || 0;
-  answers.bayWidth = parseFloat(bayW.value) || 0;
-  answers.availableFlow = parseFloat(Qavail.value) || 0;
+  answers.bayLength=bayL.value;
+  answers.bayWidth=bayW.value;
+  answers.availableFlow=Qavail.value;
 
   currentStep++;
   showResults();
 }
 
-////////////////////////////////////////////////////////
-// SCALE CALCULATION
-////////////////////////////////////////////////////////
+/* ---------------------------------- */
 
-function computeScales() {
-  const Lp = (answers.length||0)+(answers.upstream||0)+(answers.downstream||0);
-  const Wp = answers.width || 0;
-  const Qp = answers.discharge || 0;
+function compute(){
 
-  const bayL = answers.bayLength || 0;
-  const bayW = answers.bayWidth || 0;
-  const Qavail = (answers.availableFlow || 0) / 1000;
+  const scales=[20,40,60,80,100];
+  let results=[];
 
-  const scales=[20,30,40,50,60,70,80,90,100];
-  const results=[];
+  scales.forEach(N=>{
 
-  for(let i=0;i<scales.length;i++){
-    let N=scales[i];
+    let L=answers.length/N;
+    let W=answers.width/N;
+    let Q=answers.discharge/Math.pow(N,2.5);
 
-    let Lm=Lp/N;
-    let Wm=Wp/N;
-    let Qm=Qp/Math.pow(N,2.5);
+    let geo = L<=answers.bayLength && W<=answers.bayWidth;
+    let flow = Q<=answers.availableFlow/1000;
 
-    let fitsGeo=(Lm<=bayL)&&(Wm<=bayW);
-    let fitsFlow=(Qm<=Qavail);
-
-    results.push({N,Lm,Wm,Qm,fitsGeo,fitsFlow,pass:fitsGeo&&fitsFlow});
-  }
+    results.push({N,L,W,Q,geo,flow,pass:geo&&flow});
+  });
 
   return results;
 }
 
-////////////////////////////////////////////////////////
-// OBJECTIVE NOTES
-////////////////////////////////////////////////////////
+/* ---------------------------------- */
 
-function buildObjectiveNotesHTML() {
+function showResults(){
 
-  let html = "<div class='reasoning'><h3>Engineering Modelling Considerations</h3>";
+  let results=compute();
+  let selected=results.findIndex(r=>r.pass);
 
-  if (answers.objective === "Hydraulics") {
-    let kb = KNOWLEDGE_BASE.hydraulics;
-    html += "<p><b>" + kb.title + "</b></p><ul>";
-    kb.points.forEach(p => html += "<li>"+p+"</li>");
-    html += "</ul>";
-  }
-
-  if (answers.objective === "Scour") {
-    let kb = KNOWLEDGE_BASE.scour;
-    html += "<p><b>" + kb.title + "</b></p><ul>";
-    kb.points.forEach(p => html += "<li>"+p+"</li>");
-    html += "</ul>";
-  }
-
-  let kb2 = KNOWLEDGE_BASE.scaleEffects;
-  html += "<p><b>" + kb2.title + "</b></p><ul>";
-  kb2.points.forEach(p => html += "<li>"+p+"</li>");
-  html += "</ul>";
-
-  html += "</div>";
-  return html;
-}
-
-////////////////////////////////////////////////////////
-// RESULTS
-////////////////////////////////////////////////////////
-
-function showResults() {
-  const results=computeScales();
-
-  // ✅ Select largest feasible model (smallest N)
-  let selected = results.findIndex(r => r.pass);
-
-  let html="<h2>Scale Assessment & Recommendation</h2>";
+  let html=`<h2>Scale Assessment</h2>`;
 
   if(selected>=0){
-    html += `<div class="recommend">RECOMMENDED SCALE<br>1:${results[selected].N}</div>`;
-  } else {
-    html += `<div class="recommend">No feasible scale within laboratory limits</div>`;
+    let r=results[selected];
+
+    html+=`
+    <div class="recommend">
+      RECOMMENDED SCALE<br>1:${r.N}
+      <div class="subtext">Largest feasible model within constraints</div>
+    </div>
+    `;
   }
 
-  html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>";
+  html+=`<table>
+    <tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>`;
 
   results.forEach((r,i)=>{
-    let style=(i===selected)?"style='background:#d9f2ff;font-weight:bold;'":"";
-
-    html+=`<tr ${style}>
+    html+=`
+    <tr class="${i===selected?'selected':''}">
       <td>1:${r.N}</td>
-      <td>${r.Lm.toFixed(2)}</td>
-      <td>${r.Wm.toFixed(2)}</td>
-      <td>${r.Qm.toFixed(3)}</td>
-      <td>${r.fitsGeo?"✓":"✗"}</td>
-      <td>${r.fitsFlow?"✓":"✗"}</td>
+      <td>${r.L.toFixed(2)}</td>
+      <td>${r.W.toFixed(2)}</td>
+      <td>${r.Q.toFixed(3)}</td>
+      <td>${r.geo?'✓':'✗'}</td>
+      <td>${r.flow?'✓':'✗'}</td>
     </tr>`;
   });
 
-  html+="</table>";
+  html+=`</table>`;
 
   if(selected>=0){
-    let r = results[selected];
+    let r=results[selected];
 
-    let geoUtil = (r.Lm / answers.bayLength * 100).toFixed(1);
-    let flowUtil = (r.Qm / (answers.availableFlow/1000) * 100).toFixed(1);
+    let geoUtil=r.L/answers.bayLength*100;
+    let flowUtil=r.Q/(answers.availableFlow/1000)*100;
 
-    let governing = (flowUtil > geoUtil)
-      ? "Flow capacity limits achievable model scale"
-      : "Facility geometry limits achievable model scale";
+    let conf = r.N<=40?'high':(r.N<=70?'moderate':'low');
+    let confText = r.N<=40?'High':(r.N<=70?'Moderate':'Lower');
 
-    let confidenceClass = r.N <= 40 ? "conf-high"
-      : (r.N <= 70 ? "conf-moderate" : "conf-low");
+    let governing = flowUtil>geoUtil?'Flow capacity':'Geometry';
 
-    let confidenceText = r.N <= 40 ? "High"
-      : (r.N <= 70 ? "Moderate" : "Lower");
+    html+=`
+    <div class="reasoning">
+      <h3>Assessment Summary</h3>
 
-    html += "<div class='reasoning'>";
-    html += "<h3>Assessment Summary</h3>";
-    html += `<p><b>⚙ Governing factor:</b> ${governing}</p>`;
-    html += `<p><b>📊 Confidence:</b> <span class='${confidenceClass}'>${confidenceText}</span></p>`;
-    html += "<p><i>Confidence is primarily driven by achievable model scale. Larger physical models generally provide improved representation of hydraulic processes.</i></p>";
-    html += `<p>Geometry utilisation: ${geoUtil}%</p>`;
-    html += `<p>Flow utilisation: ${flowUtil}%</p>`;
-    html += "</div>";
+      ⚙ Governing: ${governing}<br><br>
+
+      📊 Confidence: <span class="badge ${conf}">${confText}</span>
+
+      <p class="subtext">Confidence is primarily based on model scale.</p>
+
+      Geometry utilisation
+      <div class="util-bar"><div class="util-fill" style="width:${geoUtil}%"></div></div>
+
+      Flow utilisation
+      <div class="util-bar"><div class="util-fill" style="width:${flowUtil}%"></div></div>
+    </div>
+    `;
   }
 
-  html += buildObjectiveNotesHTML();
-
-  html += `
-    <div style="display:flex; justify-content:space-between; margin-top:20px;">
-      <button onclick="goBack()">Back</button>
-      <button onclick="start()">Restart</button>
-    </div>
-  `;
+  html+=`
+  <div style="display:flex;justify-content:space-between;margin-top:20px;">
+    <button onclick="goBack()">Back</button>
+    <button onclick="start()">Restart</button>
+  </div>`;
 
   render(html);
 }
