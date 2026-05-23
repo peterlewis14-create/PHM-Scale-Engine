@@ -1,3 +1,5 @@
+let chartInstance = null;
+
 // ================= STATE =================
 const state = {
   step: 1,
@@ -42,6 +44,67 @@ function addOption(id,val){
   opt.textContent = val;
   document.getElementById(id).appendChild(opt);
 }
+
+function renderChart(scales, best) {
+
+  const labels = scales.map(s => s.N);
+
+  const geo = scales.map(s => s.geoUtil);
+  const flow = scales.map(s => s.flowUtil);
+  const feasible = scales.map(s => s.feasible ? 1 : 0);
+
+  const ctx = document.getElementById("chart").getContext("2d");
+
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Geometry Utilisation (%)",
+          data: geo,
+          borderColor: "#0078d4",
+          tension: 0.3
+        },
+        {
+          label: "Flow Utilisation (%)",
+          data: flow,
+          borderColor: "#00a36c",
+          tension: 0.3
+        },
+        {
+          label: "Feasible",
+          data: feasible,
+          borderColor: "#888",
+          borderDash: [5, 5],
+          yAxisID: 'y2'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" }
+      },
+      scales: {
+        y: {
+          title: { display: true, text: "Utilisation (%)" },
+          min: 0,
+          max: 120
+        },
+        y2: {
+          position: 'right',
+          min: 0,
+          max: 1,
+          ticks: { callback: v => v === 1 ? "Yes" : "No" }
+        }
+      }
+    }
+  });
+}
+
 
 // ================= NAV =================
 function nextStep(n){
