@@ -1,14 +1,38 @@
 // -------------------------------
-// ANSWER STORAGE
+// STATE
 // -------------------------------
 const answers = {};
+let currentStep = 1;
+let totalSteps = 10;
 
+// -------------------------------
 function start() {
+  currentStep = 1;
   showDesignStage();
 }
 
+// -------------------------------
+function getProgressBar() {
+  const percent = Math.round((currentStep / totalSteps) * 100);
+
+  return `
+    <div class="progress-container">
+      <div class="progress-text">Step ${currentStep} of ${totalSteps}</div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${percent}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+// -------------------------------
+function render(html) {
+  document.getElementById("app").innerHTML =
+    getProgressBar() + html;
+}
+
 // ----------------------------------------------------
-// QUESTION 1 — DESIGN STAGE
+// DESIGN STAGE
 // ----------------------------------------------------
 function showDesignStage() {
   render(`
@@ -21,6 +45,14 @@ function showDesignStage() {
 
 function selectDesignStage(stage) {
   answers.designStage = stage;
+
+  if (stage === "Concept") {
+    totalSteps = 6;
+  } else {
+    totalSteps = 10;
+  }
+
+  currentStep++;
   showRiskLevel();
 }
 
@@ -36,6 +68,7 @@ function showRiskLevel() {
 
 function selectRisk(level) {
   answers.riskLevel = level;
+  currentStep++;
   showObjectives();
 }
 
@@ -44,7 +77,7 @@ function showObjectives() {
   render(`
     <h2>Primary Objective</h2>
     <button onclick="selectObjective('Hydraulics')">Hydraulics</button>
-    <button onclick="selectObjective('Energy Dissipation')">Energy Dissipation</button>
+    <button onclick="selectObjective('Energy')">Energy Dissipation</button>
     <button onclick="selectObjective('Scour')">Scour / Erosion</button>
     <button onclick="selectObjective('General')">General Behaviour</button>
   `);
@@ -52,6 +85,7 @@ function showObjectives() {
 
 function selectObjective(obj) {
   answers.objective = obj;
+  currentStep++;
   showKnownIssues();
 }
 
@@ -67,6 +101,7 @@ function showKnownIssues() {
 
 function selectIssues(issue) {
   answers.issues = issue;
+  currentStep++;
 
   if (answers.designStage === 'Concept') {
     showPrototypeDischarge();
@@ -88,6 +123,7 @@ function showPrototypeLength() {
 
 function saveLength() {
   answers.length = parseFloat(document.getElementById("len").value) || 0;
+  currentStep++;
   showUpstreamExtent();
 }
 
@@ -101,6 +137,7 @@ function showUpstreamExtent() {
 
 function saveUpstream() {
   answers.upstream = parseFloat(document.getElementById("up").value) || 0;
+  currentStep++;
   showDownstreamExtent();
 }
 
@@ -114,6 +151,7 @@ function showDownstreamExtent() {
 
 function saveDownstream() {
   answers.downstream = parseFloat(document.getElementById("down").value) || 0;
+  currentStep++;
   showWidthOfInterest();
 }
 
@@ -127,6 +165,7 @@ function showWidthOfInterest() {
 
 function saveWidth() {
   answers.width = parseFloat(document.getElementById("width").value) || 0;
+  currentStep++;
   showPrototypeDischarge();
 }
 
@@ -143,6 +182,7 @@ function showPrototypeDischarge() {
 
 function saveDischarge() {
   answers.discharge = parseFloat(document.getElementById("Qp").value) || 0;
+  currentStep++;
   showBayLength();
 }
 
@@ -156,6 +196,7 @@ function showBayLength() {
 
 function saveBayLength() {
   answers.bayLength = parseFloat(document.getElementById("bayL").value) || 0;
+  currentStep++;
   showBayWidth();
 }
 
@@ -169,6 +210,7 @@ function showBayWidth() {
 
 function saveBayWidth() {
   answers.bayWidth = parseFloat(document.getElementById("bayW").value) || 0;
+  currentStep++;
   showAvailableFlow();
 }
 
@@ -182,6 +224,7 @@ function showAvailableFlow() {
 
 function saveAvailableFlow() {
   answers.availableFlow = parseFloat(document.getElementById("Qavail").value) || 0;
+  currentStep++;
   showResults();
 }
 
@@ -202,7 +245,7 @@ function computeScales() {
 
   const bayL = answers.bayLength;
   const bayW = answers.bayWidth;
-  const Qavail = answers.availableFlow / 1000; // L/s → m³/s
+  const Qavail = answers.availableFlow / 1000;
 
   const [minS, maxS] = getScaleRange();
 
@@ -221,12 +264,8 @@ function computeScales() {
     const fitsFlow = Qm <= Qavail;
 
     results.push({
-      N,
-      Lm,
-      Wm,
-      Qm,
-      fitsGeo,
-      fitsFlow,
+      N, Lm, Wm, Qm,
+      fitsGeo, fitsFlow,
       pass: fitsGeo && fitsFlow
     });
   });
@@ -235,7 +274,7 @@ function computeScales() {
 }
 
 // ----------------------------------------------------
-// RESULTS DISPLAY
+// RESULTS
 // ----------------------------------------------------
 function showResults() {
   const results = computeScales();
@@ -250,7 +289,7 @@ function showResults() {
     const anyFlow = results.some(r => r.fitsFlow);
 
     if (!anyGeo && anyFlow) {
-      recommendation = "⚠ Geometry does not fit → Reduce extents or use sectional model";
+      recommendation = "⚠ Geometry does not fit → Reduce extents or sectional model";
     } else if (anyGeo && !anyFlow) {
       recommendation = "⚠ Flow limited → Use coarser scale";
     } else {
@@ -265,8 +304,8 @@ function showResults() {
         <th>Length</th>
         <th>Width</th>
         <th>Flow</th>
-        <th>Geometry</th>
-        <th>Flow Check</th>
+        <th>Geo</th>
+        <th>Flow</th>
         <th>Result</th>
       </tr>
   `;
@@ -278,15 +317,9 @@ function showResults() {
         <td>${r.Lm.toFixed(2)}</td>
         <td>${r.Wm.toFixed(2)}</td>
         <td>${r.Qm.toFixed(3)}</td>
-        <td class="${r.fitsGeo ? 'pass' : 'fail'}">
-          ${r.fitsGeo ? "✓" : "✗"}
-        </td>
-        <td class="${r.fitsFlow ? 'pass' : 'fail'}">
-          ${r.fitsFlow ? "✓" : "✗"}
-        </td>
-        <td class="${r.pass ? 'pass' : 'fail'}">
-          ${r.pass ? "PASS" : "FAIL"}
-        </td>
+        <td class="${r.fitsGeo ? 'pass' : 'fail'}">${r.fitsGeo ? "✓" : "✗"}</td>
+        <td class="${r.fitsFlow ? 'pass' : 'fail'}">${r.fitsFlow ? "✓" : "✗"}</td>
+        <td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? "PASS" : "FAIL"}</td>
       </tr>
     `;
   });
@@ -295,20 +328,10 @@ function showResults() {
 
   render(`
     <h2>Results</h2>
-
     <div class="recommend">${recommendation}</div>
-
     ${table}
-
     <br>
     <button onclick="start()">Restart</button>
   `);
 }
-// ----------------------------------------------------
-// RENDER
-// ----------------------------------------------------
-function render(html) {
-  document.getElementById("app").innerHTML = html;
-}
-``
 
