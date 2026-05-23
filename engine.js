@@ -250,24 +250,24 @@ function showResults() {
     const anyFlow = results.some(r => r.fitsFlow);
 
     if (!anyGeo && anyFlow) {
-      recommendation = "⚠ Geometry does not fit → Reduce extents or sectional model";
+      recommendation = "⚠ Geometry does not fit → Reduce extents or use sectional model";
     } else if (anyGeo && !anyFlow) {
       recommendation = "⚠ Flow limited → Use coarser scale";
     } else {
-      recommendation = "❌ Neither constraint satisfied → Consider distorted or sectional model";
+      recommendation = "❌ No feasible scale → Consider distorted or sectional model";
     }
   }
 
   let table = `
-    <table border="1" cellpadding="5">
+    <table>
       <tr>
         <th>Scale</th>
-        <th>Length (m)</th>
-        <th>Width (m)</th>
-        <th>Flow (m³/s)</th>
-        <th>Geo</th>
+        <th>Length</th>
+        <th>Width</th>
         <th>Flow</th>
-        <th>Pass</th>
+        <th>Geometry</th>
+        <th>Flow Check</th>
+        <th>Result</th>
       </tr>
   `;
 
@@ -278,9 +278,15 @@ function showResults() {
         <td>${r.Lm.toFixed(2)}</td>
         <td>${r.Wm.toFixed(2)}</td>
         <td>${r.Qm.toFixed(3)}</td>
-        <td>${r.fitsGeo ? "✅" : "❌"}</td>
-        <td>${r.fitsFlow ? "✅" : "❌"}</td>
-        <td>${r.pass ? "✅" : "❌"}</td>
+        <td class="${r.fitsGeo ? 'pass' : 'fail'}">
+          ${r.fitsGeo ? "✓" : "✗"}
+        </td>
+        <td class="${r.fitsFlow ? 'pass' : 'fail'}">
+          ${r.fitsFlow ? "✓" : "✗"}
+        </td>
+        <td class="${r.pass ? 'pass' : 'fail'}">
+          ${r.pass ? "PASS" : "FAIL"}
+        </td>
       </tr>
     `;
   });
@@ -288,13 +294,16 @@ function showResults() {
   table += "</table>";
 
   render(`
-    <h2>Scale Selection Results</h2>
-    <p>${recommendation}</p>
+    <h2>Results</h2>
+
+    <div class="recommend">${recommendation}</div>
+
     ${table}
+
+    <br>
     <button onclick="start()">Restart</button>
   `);
 }
-
 // ----------------------------------------------------
 // RENDER
 // ----------------------------------------------------
