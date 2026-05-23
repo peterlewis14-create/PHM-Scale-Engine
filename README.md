@@ -1,7 +1,7 @@
 # PHM-Scale-Engine
 Scale selection tool for PHM
 flowchart TD
-```mermaid
+mermaid
 flowchart TD
 
 %% --- START ---
@@ -83,7 +83,6 @@ R4C --> O3
 
 O2 --> END([End])
 O3 --> END
-```
 
 
 
