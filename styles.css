@@ -1,91 +1,93 @@
-body{
-font-family:Arial;
-margin:0;
-background:#f4f6f9;
+body { font-family: Inter, Arial; margin:0; background:#f4f6f9; }
+
+header {
+  background:#fff;
+  padding:15px;
+  border-bottom:1px solid #ddd;
+  position:sticky;
+  top:0;
 }
 
-header{
-background:white;
-padding:15px;
-border-bottom:1px solid #ddd;
-position:sticky;
-top:0;
+.header-inner {
+  display:flex;
+  justify-content:space-between;
 }
 
-.container{
-max-width:1200px;
-margin:auto;
-padding:20px;
+.container {
+  max-width:1200px;
+  margin:auto;
+  padding:20px;
 }
 
-.card{
-background:white;
-padding:25px;
-border-radius:10px;
-margin-bottom:20px;
-box-shadow:0 4px 10px rgba(0,0,0,0.08);
+.card {
+  background:#fff;
+  padding:25px;
+  border-radius:12px;
+  margin-bottom:20px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
-.hidden{display:none;}
+.hidden { display:none; }
 
-input,select{
-width:100%;
-padding:10px;
-margin-top:10px;
-border-radius:6px;
-border:1px solid #ccc;
+input,select {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:6px;
+  border:1px solid #ccc;
 }
 
-.nav{
-display:flex;
-justify-content:space-between;
-margin-top:20px;
+.nav {
+  display:flex;
+  justify-content:space-between;
+  margin-top:25px;
 }
 
-button{
-padding:10px 18px;
-border-radius:6px;
-cursor:pointer;
+button {
+  padding:10px 18px;
+  border-radius:8px;
+  cursor:pointer;
 }
 
-.primary{
-background:#0078d4;
-color:white;
-border:none;
+.primary {
+  background:#0078d4;
+  color:white;
+  border:none;
 }
 
-.hero{
-text-align:center;
-margin-bottom:20px;
+.hero {
+  text-align:center;
+  margin-bottom:20px;
 }
 
-.scale{
-font-size:48px;
-color:#0078d4;
-font-weight:bold;
+.scale {
+  font-size:48px;
+  font-weight:bold;
+  color:#0078d4;
 }
 
-.subtitle{color:#555;}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:20px;
-}
-td,th{
-padding:10px;
-border-bottom:1px solid #ddd;
-text-align:center;
+table {
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
 }
 
-tr:hover{background:#eaf3ff}
-.selected{background:#cfe5ff}
-
-.warning{
-padding:10px;
-border-radius:6px;
-margin-top:10px;
+th,td {
+  padding:10px;
+  border-bottom:1px solid #ddd;
+  text-align:center;
 }
 
-.high{background:#ffe0e0}
-.medium{background:#fff1d6}
+tr:hover { background:#e6f2ff; }
+
+.selected { background:#cfe5ff; }
+
+.warning {
+  margin-top:10px;
+  padding:10px;
+  border-radius:8px;
+}
+
+.high { background:#ffe0e0; }
+.medium { background:#fff2d6; }
+.info { background:#e6f0ff; }
