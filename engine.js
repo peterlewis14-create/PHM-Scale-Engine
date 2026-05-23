@@ -28,37 +28,28 @@ function render(html) {
 }
 
 // ----------------------------------------------------
-// STEP 1
+// QUESTIONS
 // ----------------------------------------------------
 function showDesignStage() {
   let html = "";
   html += "<h2>Design Stage</h2>";
   html += "<button onclick=\"selectDesignStage('Concept')\">Concept</button>";
   html += "<button onclick=\"selectDesignStage('Detailed')\">Detailed</button>";
-
   render(html);
 }
 
 function selectDesignStage(stage) {
   answers.designStage = stage;
-
-  if (stage === "Concept") {
-    totalSteps = 5;
-  } else {
-    totalSteps = 7;
-  }
-
+  totalSteps = (stage === "Concept") ? 5 : 7;
   currentStep++;
   showRiskLevel();
 }
 
-// ----------------------------------------------------
 function showRiskLevel() {
   let html = "";
   html += "<h2>Risk Level</h2>";
   html += "<button onclick=\"selectRisk('Low')\">Low</button>";
   html += "<button onclick=\"selectRisk('High')\">High</button>";
-
   render(html);
 }
 
@@ -68,20 +59,17 @@ function selectRisk(level) {
   showObjectives();
 }
 
-// ----------------------------------------------------
 function showObjectives() {
   let html = "";
   html += "<h2>Objective</h2>";
   html += "<button onclick=\"selectObjective('Hydraulics')\">Hydraulics</button>";
   html += "<button onclick=\"selectObjective('Scour')\">Scour</button>";
-
   render(html);
 }
 
 function selectObjective(obj) {
   answers.objective = obj;
   currentStep++;
-
   if (answers.designStage === "Concept") {
     showDischarge();
   } else {
@@ -95,14 +83,11 @@ function selectObjective(obj) {
 function showGeometry() {
   let html = "";
   html += "<h2>Prototype Geometry</h2>";
-
   html += "Total Length (m)<br><input id='len'><br>";
-  html += "Upstream Extent (m)<br><input id='up'><br>";
-  html += "Downstream Extent (m)<br><input id='down'><br>";
+  html += "Upstream (m)<br><input id='up'><br>";
+  html += "Downstream (m)<br><input id='down'><br>";
   html += "Width (m)<br><input id='width'><br>";
-
   html += "<br><button onclick='saveGeometry()'>Next</button>";
-
   render(html);
 }
 
@@ -124,7 +109,6 @@ function showDischarge() {
   html += "<h2>Prototype Flow</h2>";
   html += "Discharge (m3/s)<br><input id='Qp'><br>";
   html += "<br><button onclick='saveDischarge()'>Next</button>";
-
   render(html);
 }
 
@@ -140,13 +124,10 @@ function saveDischarge() {
 function showFacility() {
   let html = "";
   html += "<h2>Facility Constraints</h2>";
-
   html += "Bay Length (m)<br><input id='bayL'><br>";
   html += "Bay Width (m)<br><input id='bayW'><br>";
   html += "Available Flow (L/s)<br><input id='Qavail'><br>";
-
   html += "<br><button onclick='saveFacility()'>Run Analysis</button>";
-
   render(html);
 }
 
@@ -160,7 +141,7 @@ function saveFacility() {
 }
 
 // ----------------------------------------------------
-// SCALE CALCULATION
+// SCALE CALC
 // ----------------------------------------------------
 function computeScales() {
   const Lp = (answers.length || 0) + (answers.upstream || 0) + (answers.downstream || 0);
@@ -185,12 +166,8 @@ function computeScales() {
     let fitsFlow = Qm <= Qavail;
 
     results.push({
-      N,
-      Lm,
-      Wm,
-      Qm,
-      fitsGeo,
-      fitsFlow,
+      N, Lm, Wm, Qm,
+      fitsGeo, fitsFlow,
       pass: fitsGeo && fitsFlow
     });
   }
@@ -199,67 +176,63 @@ function computeScales() {
 }
 
 // ----------------------------------------------------
-// RESULTS WITH REASONING
+// RESULTS + ENGINEERING LOGIC
 // ----------------------------------------------------
 function showResults() {
   const results = computeScales();
-
-  let recommendation = "No viable scale found.";
-  let reasoning = "";
-
   let selected = null;
 
   for (let i = 0; i < results.length; i++) {
-    let r = results[i];
-
-    if (r.pass && selected === null) {
-      selected = r;
-      recommendation = "✅ Recommended Scale: 1:" + r.N;
+    if (results[i].pass) {
+      selected = results[i];
+      break;
     }
   }
 
-  reasoning += "<h3>Engineering Reasoning</h3>";
+  let recommendation = "";
+  let governing = "";
+  let actions = "";
 
-  for (let i = 0; i < results.length; i++) {
-    let r = results[i];
-
-    reasoning += "<p><b>1:" + r.N + "</b> → ";
-
-    if (r.pass) {
-      reasoning += "✅ Passes (geometry and flow)";
-    } else {
-      let reasons = [];
-
-      if (!r.fitsGeo) {
-        reasons.push("geometry exceeds facility");
-      }
-
-      if (!r.fitsFlow) {
-        reasons.push("flow exceeds capacity");
-      }
-
-      reasoning += "❌ Fails (" + reasons.join(", ") + ")";
-    }
-
-    reasoning += "</p>";
-  }
-
-  // Utilisation for selected scale
   if (selected) {
-    const Lp = (answers.length || 0) + (answers.upstream || 0) + (answers.downstream || 0);
-    const Wp = answers.width || 0;
-
-    const geoUse = ((Lp / selected.N) / answers.bayLength * 100).toFixed(0);
-    const flowUse = ((selected.Qm / (answers.availableFlow / 1000)) * 100).toFixed(0);
-
-    reasoning += "<p><b>Utilisation:</b></p>";
-    reasoning += "<p>Geometry: " + geoUse + "% of available length</p>";
-    reasoning += "<p>Flow: " + flowUse + "% of available capacity</p>";
+    recommendation = "✅ Recommended Scale: 1:" + selected.N;
+  } else {
+    recommendation = "❌ No viable scale found";
   }
 
-  let table = "<table border='1'><tr>";
-  table += "<th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th><th>Pass</th>";
-  table += "</tr>";
+  // ---------------- GOVERNING CONSTRAINT ----------------
+  let geoFails = results.filter(r => !r.fitsGeo).length;
+  let flowFails = results.filter(r => !r.fitsFlow).length;
+
+  if (geoFails > flowFails) {
+    governing = "Geometry (model size exceeds facility limits)";
+  } else if (flowFails > geoFails) {
+    governing = "Flow capacity (required discharge too high)";
+  } else {
+    governing = "Both geometry and flow constraints are critical";
+  }
+
+  // ---------------- RECOMMENDATIONS ----------------
+  actions += "<ul>";
+
+  if (flowFails > 0) {
+    actions += "<li>Consider increasing scale (coarser model) to reduce flow demand</li>";
+    actions += "<li>Reduce design flow range if acceptable</li>";
+  }
+
+  if (geoFails > 0) {
+    actions += "<li>Reduce model extent (truncate upstream/downstream)</li>";
+    actions += "<li>Consider sectional or partial model</li>";
+  }
+
+  if (!selected) {
+    actions += "<li>Consider distorted scale or multiple models</li>";
+  }
+
+  actions += "</ul>";
+
+  // ---------------- TABLE ----------------
+  let table = "<table><tr>";
+  table += "<th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th><th>Pass</th></tr>";
 
   for (let i = 0; i < results.length; i++) {
     let r = results[i];
@@ -269,21 +242,31 @@ function showResults() {
     table += "<td>" + r.Lm.toFixed(2) + "</td>";
     table += "<td>" + r.Wm.toFixed(2) + "</td>";
     table += "<td>" + r.Qm.toFixed(3) + "</td>";
-    table += "<td>" + (r.fitsGeo ? "✓" : "✗") + "</td>";
-    table += "<td>" + (r.fitsFlow ? "✓" : "✗") + "</td>";
-    table += "<td>" + (r.pass ? "✓" : "✗") + "</td>";
+
+    table += "<td class='" + (r.fitsGeo ? "good" : "bad") + "'>" + (r.fitsGeo ? "✓" : "✗") + "</td>";
+    table += "<td class='" + (r.fitsFlow ? "good" : "bad") + "'>" + (r.fitsFlow ? "✓" : "✗") + "</td>";
+    table += "<td class='" + (r.pass ? "good" : "bad") + "'>" + (r.pass ? "✓" : "✗") + "</td>";
+
     table += "</tr>";
   }
 
   table += "</table>";
 
+  // ---------------- FINAL OUTPUT ----------------
   let html = "";
   html += "<h2>Results</h2>";
-  html += "<p>" + recommendation + "</p>";
+  html += "<div class='recommend'>" + recommendation + "</div>";
   html += table;
-  html += reasoning;
+
+  html += "<div class='reasoning'>";
+  html += "<h3>Governing Constraint</h3>";
+  html += "<p>" + governing + "</p>";
+
+  html += "<h3>Recommended Actions</h3>";
+  html += actions;
+  html += "</div>";
+
   html += "<br><button onclick='start()'>Restart</button>";
 
   render(html);
 }
-``
