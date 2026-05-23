@@ -1,4 +1,4 @@
-const VERSION = "v1.6";
+const VERSION = "v1.7";
 const REVISION = "R1";
 const LAST_UPDATED = "23 May 2026";
 
@@ -23,7 +23,7 @@ function save(fn){
 function back(){
   let h = history.pop();
   if(!h) return;
-  Object.assign(answers,h.data);
+  Object.assign(answers, h.data);
   step = h.step;
   h.fn();
 }
@@ -54,29 +54,82 @@ function nav(next){
   </div>`;
 }
 
-/* STEP 1 */
-function showProject(){
-  let html = `<h2>Step 1 – Project Overview</h2>
+//////////////////////////////////////////////////
+// ✅ STEP 1 – PROJECT CONTEXT (MULTI-SELECT)
+//////////////////////////////////////////////////
 
-  <label>Project Focus</label>
-  <select id="focus">
-    <option ${answers.objective==="Hydraulics"?"selected":""}>Hydraulics</option>
-    <option ${answers.objective==="Scour"?"selected":""}>Scour</option>
-  </select>`;
+function showProject(){
+
+  let html = `<h2>Step 1 – Project Context</h2>
+
+  <label>Design Stage</label>
+  <select id="stage">
+    <option ${answers.stage==="Concept"?"selected":""}>Concept</option>
+    <option ${answers.stage==="Preliminary"?"selected":""}>Preliminary</option>
+    <option ${answers.stage==="Detailed"?"selected":""}>Detailed</option>
+  </select>
+
+  <label>Project Objective (multi-select)</label>
+  <select id="objective" multiple size="5">
+    <option value="Hydraulics">Understanding the general hydraulics</option>
+    <option value="Scour">Concerns about downstream scour and sediment transport</option>
+    <option value="Energy">Energy dissipation / air entrainment</option>
+    <option value="Uplift">Uplift pressures</option>
+  </select>
+
+  <label>Risk Level</label>
+  <select id="risk">
+    <option ${answers.risk==="Low"?"selected":""}>Low</option>
+    <option ${answers.risk==="Moderate"?"selected":""}>Moderate</option>
+    <option ${answers.risk==="High"?"selected":""}>High</option>
+  </select>
+
+  <label>Known Issues (multi-select)</label>
+  <select id="issues" multiple size="6">
+    <option value="Erosion">Erosion occurring downstream</option>
+    <option value="Uplift">Uplift pressures</option>
+    <option value="Cavitation">Cavitation</option>
+    <option value="Velocity">High velocities</option>
+    <option value="Anchors">Anchors failing</option>
+  </select>
+  `;
 
   html += nav("saveProject()");
   render(html);
+
+  // ✅ restore selections
+  if(answers.objectives){
+    Array.from(objective.options).forEach(o=>{
+      o.selected = answers.objectives.includes(o.value);
+    });
+  }
+
+  if(answers.issues){
+    Array.from(issues.options).forEach(o=>{
+      o.selected = answers.issues.includes(o.value);
+    });
+  }
 }
 
 function saveProject(){
   save(showProject);
-  answers.objective = focus.value;
+
+  answers.stage = stage.value;
+  answers.risk = risk.value;
+
+  answers.objectives = Array.from(objective.selectedOptions).map(o => o.value);
+  answers.issues = Array.from(issues.selectedOptions).map(o => o.value);
+
   step++;
   showPrototype();
 }
 
-/* STEP 2 */
+//////////////////////////////////////////////////
+// STEP 2 – PROTOTYPE
+//////////////////////////////////////////////////
+
 function showPrototype(){
+
   let html = `<h2>Step 2 – Prototype Details</h2>
 
   <label>Total Length (m)</label>
@@ -104,8 +157,12 @@ function savePrototype(){
   showLab();
 }
 
-/* STEP 3 */
+//////////////////////////////////////////////////
+// STEP 3 – LAB
+//////////////////////////////////////////////////
+
 function showLab(){
+
   let html = `<h2>Step 3 – Laboratory Conditions</h2>
 
   <label>Bay Length (m)</label>
@@ -133,7 +190,10 @@ function saveLab(){
   showResults();
 }
 
-/* CALCS */
+//////////////////////////////////////////////////
+// CALCULATIONS (UNCHANGED CORE LOGIC)
+//////////////////////////////////////////////////
+
 function compute(){
   const scales=[20,30,40,50,60,70,80,90,100];
   const results=[];
@@ -146,10 +206,9 @@ function compute(){
     let geo = Lm<=answers.bayLength && Wm<=answers.bayWidth;
     let flow = Qm<=answers.availableFlow;
 
-    let reason = "";
-    if(!geo) reason = "Geometry exceeds facility";
-    else if(!flow) reason = "Flow exceeds supply";
-    else reason = "Feasible";
+    let reason = !geo ? "Geometry exceeds facility"
+                : !flow ? "Flow exceeds supply"
+                : "Feasible";
 
     results.push({N,Lm,Wm,Qm,geo,flow,pass:geo&&flow,reason});
   });
@@ -157,8 +216,37 @@ function compute(){
   return results;
 }
 
-/* RESULTS */
+//////////////////////////////////////////////////
+// ✅ PROJECT INTERPRETATION (NEW)
+//////////////////////////////////////////////////
+
+function buildProjectInterpretation(){
+
+  let html = "<div class='reasoning'><h3>Project Interpretation</h3>";
+
+  html += `<p><b>Design stage:</b> ${answers.stage}</p>`;
+  html += `<p><b>Risk level:</b> ${answers.risk}</p>`;
+
+  html += "<p><b>Objectives:</b></p><ul>";
+  answers.objectives?.forEach(o => html += `<li>${o}</li>`);
+  html += "</ul>";
+
+  if(answers.issues?.length){
+    html += "<p><b>Known issues:</b></p><ul>";
+    answers.issues.forEach(i => html += `<li>${i}</li>`);
+    html += "</ul>";
+  }
+
+  html += "</div>";
+  return html;
+}
+
+//////////////////////////////////////////////////
+// RESULTS
+//////////////////////////////////////////////////
+
 function showResults(){
+
   let results = compute();
   let selected = results.findIndex(r=>r.pass);
 
@@ -182,9 +270,7 @@ function showResults(){
 
     <div class="subtext">⚙ ${governing}</div>
 
-    <p style="margin-top:10px;">
-      A scale of 1:${r.N} provides a practical balance between model size and available laboratory capacity.
-    </p>
+    <p>A scale of 1:${r.N} provides a practical balance between model size and facility capacity.</p>
     `;
   }
 
@@ -234,25 +320,24 @@ function showResults(){
 
       <p class="subtext">
       Confidence is primarily driven by achievable model scale.
-      Larger physical models generally provide improved representation of hydraulic behaviour.
+      Larger models generally provide improved hydraulic representation.
       </p>
 
-      <p><b>Utilisation</b> (values close to 100% indicate efficient use of facility)</p>
+      <p><b>Utilisation</b> (values close to 100% indicate efficient use)</p>
 
       Geometry utilisation
-      <div class="util-bar">
-        <div class="util-fill" style="width:${geoUtil}%"></div>
-      </div>
+      <div class="util-bar"><div class="util-fill" style="width:${geoUtil}%"></div></div>
       ${geoUtil.toFixed(1)}%
 
-      Flow utilisation (% of available supply)
-      <div class="util-bar">
-        <div class="util-fill" style="width:${flowUtil}%"></div>
-      </div>
+      Flow utilisation
+      <div class="util-bar"><div class="util-fill" style="width:${flowUtil}%"></div></div>
       ${flowUtil.toFixed(1)}%
     </div>
     `;
   }
+
+  // ✅ NEW CONTEXT BLOCK
+  html += buildProjectInterpretation();
 
   html += `
   <div style="display:flex; justify-content:space-between; margin-top:20px;">
