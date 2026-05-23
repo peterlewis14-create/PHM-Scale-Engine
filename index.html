@@ -2,122 +2,17 @@
 <html>
 <head>
   <title>PHM Scale Engine</title>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 0;
-    }
-
-    h1 {
-      text-align: center;
-      color: #003366;
-      margin-top: 20px;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: 30px auto;
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    button {
-      padding: 10px 16px;
-      margin: 6px;
-      border: none;
-      border-radius: 6px;
-      background: #0078d4;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #005fa3;
-    }
-
-    input {
-      padding: 10px;
-      width: 100%;
-      margin-top: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    .progress-container {
-      margin-bottom: 20px;
-    }
-
-    .progress-text {
-      font-size: 12px;
-      margin-bottom: 5px;
-      color: #555;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 10px;
-      background: #ddd;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: #0078d4;
-      transition: width 0.3s;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-
-    th {
-      background: #003366;
-      color: white;
-      padding: 8px;
-    }
-
-    td {
-      padding: 8px;
-      text-align: center;
-    }
-
-    tr:nth-child(even) {
-      background: #f2f2f2;
-    }
-
-    .pass {
-      color: green;
-      font-weight: bold;
-    }
-
-    .fail {
-      color: red;
-      font-weight: bold;
-    }
-
-    .recommend {
-      padding: 12px;
-      border-radius: 8px;
-      margin-top: 15px;
-      background: #e6f2ff;
-      border-left: 5px solid #0078d4;
-    }
-  </style>
 </head>
 
 <body>
 
 <h1>PHM Scale Engine</h1>
 
-<div class="container" id="app">
+<div id="app">
   <button onclick="start()">Start</button>
 </div>
 
+<script src="engine.js"></script>
+
+</body>
+</html>
