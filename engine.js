@@ -1,6 +1,18 @@
+// -------------------------------
+// STATE
+// -------------------------------
+const answers = {};
+let currentStep = 1;
+let totalSteps = 7;
+
+// -------------------------------
 function start() {
-  document.getElementById("app").innerHTML = `
-    <h2>✅ Engine Loaded</h2>
-    <p>If you can see this, everything is working correctly.</p>
-  `;
+  currentStep = 1;
+  showDesignStage();
 }
+
+// -------------------------------
+function getProgressBar() {
+  const percent = Math.round((currentStep / totalSteps) * 100);
+
+  return `
