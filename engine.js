@@ -1,61 +1,81 @@
-const state={step:1};
+let chart;
 
 // ---------- INIT ----------
-window.onload=()=>{
-init();
+window.onload = () => {
+  init();
+  loadState();
 };
 
-function init(){
-["Concept","Preliminary","Detailed"]
-.forEach(v=>add("stage",v));
+function init() {
+  ["Concept","Preliminary","Detailed"].forEach(v=>add("stage",v));
+  ["Low","Moderate","High"].forEach(v=>add("risk",v));
 
-["Low","Moderate","High"]
-.forEach(v=>add("risk",v));
+  let objectivesList = [
+    "General hydraulics",
+    "Scour / sediment transport",
+    "Energy dissipation",
+    "Air entrainment",
+    "Uplift pressures"
+  ];
 
-let objs=[
-"General hydraulics",
-"Scour / sediment transport",
-"Energy dissipation",
-"Air entrainment",
-"Uplift pressures"
-];
-
-objectives.innerHTML=objs.map(o=>
-`<label><input type="checkbox" value="${o}"> ${o}</label>`
-).join("");
+  objectives.innerHTML = objectivesList.map(o =>
+    `<label><input type="checkbox" value="${o}"> ${o}</label>`
+  ).join("");
 }
 
 function add(id,val){
-let o=document.createElement("option");
-o.textContent=val;
-document.getElementById(id).appendChild(o);
+  let o=document.createElement("option");
+  o.textContent = val;
+  document.getElementById(id).appendChild(o);
 }
 
 // ---------- NAV ----------
-function next(n){toggle(n,n+1)}
-function back(n){toggle(n,n-1)}
+function next(n){ saveState(); toggle(n,n+1); }
+function back(n){ toggle(n,n-1); }
 
 function toggle(a,b){
-document.getElementById("step"+a).classList.add("hidden");
-document.getElementById("step"+b).classList.remove("hidden");
-stepNo.innerText=b;
+  document.getElementById("step"+a).classList.add("hidden");
+  document.getElementById("step"+b).classList.remove("hidden");
+  stepNo.innerText = b;
 }
 
-// ---------- CORE ----------
+// ---------- STATE ----------
+function saveState(){
+  localStorage.setItem("hydraulicApp", JSON.stringify(getInputs()));
+}
+
+function loadState(){
+  let data = JSON.parse(localStorage.getItem("hydraulicApp"));
+  if(!data) return;
+  Object.keys(data).forEach(k=>{
+    let el = document.getElementById(k);
+    if(el) el.value = data[k];
+  });
+}
+
+function getInputs(){
+  return {
+    Lp: Lp.value, Wp: Wp.value, Qp: Qp.value,
+    Hmax: Hmax.value, Elev: Elev.value,
+    Lb: Lb.value, Wb: Wb.value, Hb: Hb.value, Qb: Qb.value
+  };
+}
+
+// ---------- ENGINE ----------
 function run(){
 
-let p={
-L:+Lp.value,W:+Wp.value,Q:+Qp.value,
-H:+Hmax.value,E:+Elev.value
+let p = {
+L:+Lp.value, W:+Wp.value, Q:+Qp.value,
+H:+Hmax.value, E:+Elev.value
 };
 
-let lab={
-L:+Lb.value,W:+Wb.value,H:+Hb.value,Q:+Qb.value
+let lab = {
+L:+Lb.value, W:+Wb.value, H:+Hb.value, Q:+Qb.value
 };
 
-let scales=[];
+let scales = [];
 
-for(let N=5;N<=100;N+=5){
+for(let N=5; N<=100; N+=5){
 
 let Lm=p.L/N;
 let Wm=p.W/N;
@@ -65,6 +85,7 @@ let Hm=((p.H-p.E)/N)+0.2;
 let geo=Lm<=lab.L && Wm<=lab.W;
 let flow=Qm<=lab.Q;
 let height=Hm<=lab.H;
+
 let feasible=geo && flow && height;
 
 let geoUtil=(Lm/lab.L)*100;
@@ -73,40 +94,47 @@ let flowUtil=(Qm/lab.Q)*100;
 scales.push({N,Lm,Wm,Hm,Qm,geo,flow,height,feasible,geoUtil,flowUtil});
 }
 
-let feasible=scales.filter(s=>s.feasible);
+// ---- SELECTION ----
+let feasible = scales.filter(s=>s.feasible);
 
-let best=feasible.find(s=>
+let best = feasible.find(s =>
 s.N<=60 &&
-s.geoUtil>70 && s.geoUtil<90 &&
-s.flowUtil>70 && s.flowUtil<90
+s.geoUtil>=70 && s.geoUtil<=90 &&
+s.flowUtil>=70 && s.flowUtil<=90
 ) || feasible[0];
 
-render(scales,best);
+// ---- ALTERNATIVES ----
+let alt = feasible.filter(s=>s.N!==best.N).slice(0,3);
+let infeasible = scales.filter(s=>!s.feasible && s.N<best.N).slice(0,3);
+
+render(scales,best,alt,infeasible);
 
 toggle(3,4);
 }
 
 // ---------- RENDER ----------
-function render(scales,best){
+function render(scales,best,alt,infeasible){
 
-scaleOut.innerText="1:"+best.N;
+scaleOut.innerText = "1:"+best.N;
 
-summary.innerHTML=`
+summary.innerHTML = `
 <b>Constraint:</b> ${
-!best.geo ? "Geometry":
-!best.flow?"Flow":
-!best.height?"Height":"Balanced"
-}<br>
+!best.geo ? "Geometry" :
+!best.flow ? "Flow" :
+!best.height ? "Height" : "Balanced"
+}
+<br>
 <b>Confidence:</b> ${
-best.N<=50?"High":
-best.N<=70?"Moderate":"Lower"
+best.N <=50 ? "High" :
+best.N <=70 ? "Moderate" : "Lower"
 }
 `;
 
-alternatives.innerHTML=`
+alternatives.innerHTML = `
 <b>Alternatives:</b><br>
-${scales.filter(s=>s.feasible && s.N!==best.N).slice(0,3)
-.map(s=>"1:"+s.N).join(", ")}`;
+Feasible: ${alt.map(a=>"1:"+a.N).join(", ")}<br>
+Larger (fail): ${infeasible.map(a=>"1:"+a.N).join(", ")}
+`;
 
 renderTable(scales,best);
 renderChart(scales,best);
@@ -115,33 +143,30 @@ renderWarnings(best);
 
 // ---------- TABLE ----------
 function renderTable(scales,best){
+
 let html="<table><tr><th>Scale</th><th>L</th><th>W</th><th>H</th><th>Q</th><th>Status</th></tr>";
 
 scales.forEach(s=>{
-html+=`<tr class="${s.N===best.N?"selected":""}">
+html+=`<tr class="${s.N===best.N?'selected':''}">
 <td>1:${s.N}</td>
 <td>${s.Lm.toFixed(2)}</td>
 <td>${s.Wm.toFixed(2)}</td>
 <td>${s.Hm.toFixed(2)}</td>
 <td>${s.Qm.toFixed(0)}</td>
-<td>${s.feasible?"✅":"❌"}</td>
+<td>${s.feasible?'✅':'❌'}</td>
 </tr>`;
 });
 
 html+="</table>";
-table.innerHTML=html;
+table.innerHTML = html;
 }
 
 // ---------- CHART ----------
-let chart;
-
 function renderChart(scales,best){
-
-let ctx=document.getElementById("chart");
 
 if(chart) chart.destroy();
 
-chart=new Chart(ctx,{
+chart = new Chart(chartCanvas(),{
 type:"line",
 data:{
 labels:scales.map(s=>s.N),
@@ -164,44 +189,50 @@ plugins:{legend:{position:"bottom"}}
 });
 }
 
-// ---------- WARNINGS ----------
-const rules=[
+function chartCanvas(){
+return document.getElementById("chart");
+}
+
+// ---------- RULE SYSTEM ----------
+const rules = [
 {
-triggers:{scale_max:50},
+triggers:{ scale_max:50 },
 message:"Scale may be too small for sediment transport",
 priority:"high"
 }
 ];
 
 function renderWarnings(best){
-let html="";
+
+let html = "";
+
 rules.forEach(r=>{
 if(r.triggers.scale_max && best.N>r.triggers.scale_max){
 html+=`<div class="warning ${r.priority}">${r.message}</div>`;
 }
 });
-warnings.innerHTML=html;
+
+warnings.innerHTML = html;
 }
 
 // ---------- EXPORT ----------
 function exportReport(){
-let txt=`
-Hydraulic Model Report
-----------------------
+
+const txt = `
+Hydraulic Model Scale Report
+----------------------------
 Recommended Scale: ${scaleOut.innerText}
 
 ${summary.innerText}
 
-Alternatives:
 ${alternatives.innerText}
 
-Warnings:
 ${warnings.innerText}
 `;
 
-let blob=new Blob([txt]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="report.txt";
+let blob = new Blob([txt], {type:"text/plain"});
+let a = document.createElement("a");
+a.href = URL.createObjectURL(blob);
+a.download = "hydraulic-report.txt";
 a.click();
 }
