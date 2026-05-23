@@ -1,9 +1,8 @@
 // -------------------------------
 const answers = {};
 let currentStep = 1;
-let totalSteps = 6;
+let totalSteps = 5;
 
-// Proper navigation history
 let historyStack = [];
 
 // -------------------------------
@@ -15,9 +14,7 @@ function start() {
 
 // -------------------------------
 function saveState(fn) {
-  // Deep copy answers
   const snapshot = JSON.parse(JSON.stringify(answers));
-
   historyStack.push({
     step: currentStep,
     answers: snapshot,
@@ -31,7 +28,6 @@ function goBack() {
 
   const prev = historyStack.pop();
 
-  // restore state
   Object.assign(answers, prev.answers);
   currentStep = prev.step;
 
@@ -100,71 +96,55 @@ function showProjectSpecifics() {
   `;
 
   html += buttonRow("saveProjectSpecifics()");
-
   render(html);
 }
 
 function saveProjectSpecifics() {
   saveState(showProjectSpecifics);
 
-  answers.designStage = document.getElementById("stage").value;
-  answers.riskLevel = document.getElementById("risk").value;
-  answers.objective = document.getElementById("focus").value;
-  answers.issues = document.getElementById("issues").value;
+  answers.designStage = stage.value;
+  answers.riskLevel = risk.value;
+  answers.objective = focus.value;
+  answers.issues = issues.value;
 
   currentStep++;
-  if (answers.designStage === "Concept") {
-    showDischarge();
-  } else {
-    showGeometry();
-  }
+  showPrototypeDetails();
 }
 
 // ----------------------------------------------------
-function showGeometry() {
-  let html = "<h2>Prototype Geometry</h2>";
+// ✅ NEW COMBINED PAGE
+// ----------------------------------------------------
+function showPrototypeDetails() {
+  let html = "<h2>Prototype Details</h2>";
 
   html += `
-    Length (m)<br><input id="len" value="${answers.length || ""}"><br>
-    Upstream (m)<br><input id="up" value="${answers.upstream || ""}"><br>
-    Downstream (m)<br><input id="down" value="${answers.downstream || ""}"><br>
-    Width (m)<br><input id="width" value="${answers.width || ""}"><br>
+    <label>Total Structure Length (m)</label><br>
+    <input id="len" value="${answers.length || ""}"><br>
+
+    <label>Upstream Extent (m)</label><br>
+    <input id="up" value="${answers.upstream || ""}"><br>
+
+    <label>Downstream Extent (m)</label><br>
+    <input id="down" value="${answers.downstream || ""}"><br>
+
+    <label>Width of Interest (m)</label><br>
+    <input id="width" value="${answers.width || ""}"><br>
+
+    <label>Prototype Discharge (m³/s)</label><br>
+    <input id="Qp" value="${answers.discharge || ""}">
   `;
 
-  html += buttonRow("saveGeometry()");
-
+  html += buttonRow("savePrototypeDetails()");
   render(html);
 }
 
-function saveGeometry() {
-  saveState(showGeometry);
+function savePrototypeDetails() {
+  saveState(showPrototypeDetails);
 
   answers.length = parseFloat(len.value) || 0;
   answers.upstream = parseFloat(up.value) || 0;
   answers.downstream = parseFloat(down.value) || 0;
   answers.width = parseFloat(width.value) || 0;
-
-  currentStep++;
-  showDischarge();
-}
-
-// ----------------------------------------------------
-function showDischarge() {
-  let html = "<h2>Prototype Flow</h2>";
-
-  html += `
-    Discharge (m³/s)<br>
-    <input id="Qp" value="${answers.discharge || ""}">
-  `;
-
-  html += buttonRow("saveDischarge()");
-
-  render(html);
-}
-
-function saveDischarge() {
-  saveState(showDischarge);
-
   answers.discharge = parseFloat(Qp.value) || 0;
 
   currentStep++;
@@ -172,17 +152,23 @@ function saveDischarge() {
 }
 
 // ----------------------------------------------------
+// LAB CONDITIONS
+// ----------------------------------------------------
 function showLab() {
   let html = "<h2>Laboratory Conditions</h2>";
 
   html += `
-    Bay Length (m)<br><input id="bayL" value="${answers.bayLength || ""}"><br>
-    Bay Width (m)<br><input id="bayW" value="${answers.bayWidth || ""}"><br>
-    Available Flow (L/s)<br><input id="Qavail" value="${answers.availableFlow || ""}">
+    <label>Bay Length (m)</label><br>
+    <input id="bayL" value="${answers.bayLength || ""}"><br>
+
+    <label>Bay Width (m)</label><br>
+    <input id="bayW" value="${answers.bayWidth || ""}"><br>
+
+    <label>Available Flow (L/s)</label><br>
+    <input id="Qavail" value="${answers.availableFlow || ""}">
   `;
 
   html += buttonRow("saveLab()");
-
   render(html);
 }
 
@@ -197,6 +183,8 @@ function saveLab() {
   showResults();
 }
 
+// ----------------------------------------------------
+// CALC
 // ----------------------------------------------------
 function computeScales() {
   const Lp = (answers.length||0)+(answers.upstream||0)+(answers.downstream||0);
@@ -224,9 +212,10 @@ function computeScales() {
 }
 
 // ----------------------------------------------------
+// RESULTS
+// ----------------------------------------------------
 function showResults() {
   const results=computeScales();
-
   let selected=results.findIndex(r=>r.pass);
 
   let html="<h2>Scale Assessment & Recommendation</h2>";
@@ -254,6 +243,6 @@ function showResults() {
   html+="</table>";
 
   html+=buttonRow("start()");
-
   render(html);
 }
+``
