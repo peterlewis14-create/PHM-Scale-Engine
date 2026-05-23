@@ -1,9 +1,12 @@
+const VERSION = "v2.2";
+const REVISION = "R3";
+
 const answers = {};
 let step = 1;
 let history = [];
 
 //////////////////////////////////////////////////
-// RULE TABLE
+// ✅ RULE TABLE (WITH PRIORITY + REFERENCES)
 //////////////////////////////////////////////////
 
 const MODELLING_RULES = [
@@ -33,7 +36,7 @@ const MODELLING_RULES = [
   },
   {
     triggers: { scaleMin: 80 },
-    message: "Coarser scales reduce hydraulic detail.",
+    message: "Coarser models reduce hydraulic detail.",
     priority: "medium",
     references: []
   }
@@ -43,13 +46,9 @@ const MODELLING_RULES = [
 // NAV
 //////////////////////////////////////////////////
 
-function start() {
-  step = 1;
-  history = [];
-  showProject();
-}
+function start(){ step=1; history=[]; showProject(); }
 
-function save(fn) {
+function save(fn){
   history.push({
     step,
     data: JSON.parse(JSON.stringify(answers)),
@@ -57,22 +56,23 @@ function save(fn) {
   });
 }
 
-function back() {
+function back(){
   let h = history.pop();
-  if (!h) return;
+  if(!h) return;
   Object.assign(answers, h.data);
   step = h.step;
   h.fn();
 }
 
-function render(html) {
+function render(content){
   document.getElementById("app").innerHTML = `
     <div>Step ${step} of 4</div>
-    ${html}
+    ${content}
+    <div class="footer">${VERSION} | ${REVISION}</div>
   `;
 }
 
-function nav(next) {
+function nav(next){
   return `
   <div style="display:flex; justify-content:space-between; margin-top:20px;">
     ${history.length ? `<button onclick="back()">Back</button>` : `<div></div>`}
@@ -84,27 +84,19 @@ function nav(next) {
 // STEP 1 ✅ FIXED
 //////////////////////////////////////////////////
 
-function showProject() {
+function showProject(){
 
   let html = `
   <h2>Project Context</h2>
 
-  <label>Design Stage
-    <span class="info">i</span>
-    <div class="tooltip">Level of design maturity</div>
-  </label>
-
+  <label>Design Stage</label>
   <select id="stage">
     <option>Concept</option>
     <option>Preliminary</option>
     <option>Detailed</option>
   </select>
 
-  <label>Objectives
-    <span class="info">i</span>
-    <div class="tooltip">Select modelling goals</div>
-  </label>
-
+  <label>Objectives</label>
   <div class="checkbox-group objectives">
     <label><input type="checkbox" value="Hydraulics"> Hydraulics</label>
     <label><input type="checkbox" value="Scour"> Scour</label>
@@ -131,14 +123,13 @@ function showProject() {
   render(html);
 }
 
-function saveProject() {
+function saveProject(){
 
   save(showProject);
 
   answers.stage = stage.value;
   answers.risk = risk.value;
 
-  // ✅ FIXED: separate groups
   answers.objectives = Array.from(
     document.querySelectorAll(".objectives input:checked")
   ).map(i => i.value);
@@ -155,7 +146,7 @@ function saveProject() {
 // STEP 2
 //////////////////////////////////////////////////
 
-function showPrototype() {
+function showPrototype(){
 
   let html = `
   <h2>Prototype</h2>
@@ -174,12 +165,13 @@ function showPrototype() {
   render(html);
 }
 
-function savePrototype() {
+function savePrototype(){
+
   save(showPrototype);
 
-  answers.length = parseFloat(len.value) || 0;
-  answers.width = parseFloat(width.value) || 0;
-  answers.discharge = parseFloat(Q.value) || 0;
+  answers.length = parseFloat(len.value)||0;
+  answers.width = parseFloat(width.value)||0;
+  answers.discharge = parseFloat(Q.value)||0;
 
   step++;
   showLab();
@@ -189,15 +181,15 @@ function savePrototype() {
 // STEP 3
 //////////////////////////////////////////////////
 
-function showLab() {
+function showLab(){
 
   let html = `
   <h2>Laboratory</h2>
 
-  <label>Bay Length</label>
+  <label>Bay Length (m)</label>
   <input id="bayL">
 
-  <label>Bay Width</label>
+  <label>Bay Width (m)</label>
   <input id="bayW">
 
   <label>Available Flow (L/s)</label>
@@ -208,71 +200,78 @@ function showLab() {
   render(html);
 }
 
-function saveLab() {
+function saveLab(){
 
   save(showLab);
 
-  answers.bayLength = parseFloat(bayL.value) || 0;
-  answers.bayWidth = parseFloat(bayW.value) || 0;
-  answers.availableFlow = parseFloat(Qavail.value) || 0;
+  answers.bayLength = parseFloat(bayL.value)||0;
+  answers.bayWidth = parseFloat(bayW.value)||0;
+  answers.availableFlow = parseFloat(Qavail.value)||0;
 
   step++;
   showResults();
 }
 
 //////////////////////////////////////////////////
-// CALC
+// CALC ✅ FULL (RESTORED)
 //////////////////////////////////////////////////
 
-function compute() {
+function compute(){
 
-  const scales = [20,30,40,50,60,70,80,90,100];
+  const scales=[20,30,40,50,60,70,80,90,100];
+  const results=[];
 
-  return scales.map(N => {
+  scales.forEach(N=>{
 
-    let Lm = answers.length / N;
-    let Wm = answers.width / N;
-    let Qm = (answers.discharge / Math.pow(N, 2.5)) * 1000;
+    let Lm = answers.length/N;
+    let Wm = answers.width/N;
+    let Qm = (answers.discharge/Math.pow(N,2.5))*1000;
 
-    let geo = Lm <= answers.bayLength && Wm <= answers.bayWidth;
-    let flow = Qm <= answers.availableFlow;
+    let geo = Lm<=answers.bayLength && Wm<=answers.bayWidth;
+    let flow = Qm<=answers.availableFlow;
 
-    return { N, Lm, Wm, Qm, geo, flow, pass: geo && flow };
+    let reason = !geo ? "Geometry exceeds facility"
+                : !flow ? "Flow exceeds supply"
+                : "Feasible";
+
+    results.push({N,Lm,Wm,Qm,geo,flow,pass:geo&&flow,reason});
   });
+
+  return results;
 }
 
 //////////////////////////////////////////////////
 // RULE ENGINE ✅ SORTED
 //////////////////////////////////////////////////
 
-function evaluateRules(scale) {
+function evaluateRules(scale){
 
-  let warnings = [];
+  let warnings=[];
 
-  MODELLING_RULES.forEach(r => {
+  MODELLING_RULES.forEach(r=>{
 
-    let hit = false;
+    let hit=false;
 
-    if (r.triggers.objectives)
-      if (answers.objectives?.some(o => r.triggers.objectives.includes(o)))
-        hit = true;
+    if(r.triggers.objectives){
+      if(answers.objectives?.some(o=>r.triggers.objectives.includes(o))) hit=true;
+    }
 
-    if (r.triggers.issues)
-      if (answers.issues?.some(i => r.triggers.issues.includes(i)))
-        hit = true;
+    if(r.triggers.issues){
+      if(answers.issues?.some(i=>r.triggers.issues.includes(i))) hit=true;
+    }
 
-    if (r.triggers.risk)
-      if (r.triggers.risk.includes(answers.risk))
-        hit = true;
+    if(r.triggers.risk){
+      if(r.triggers.risk.includes(answers.risk)) hit=true;
+    }
 
-    if (r.triggers.scaleMin)
-      if (scale >= r.triggers.scaleMin)
-        hit = true;
+    if(r.triggers.scaleMin){
+      if(scale>=r.triggers.scaleMin) hit=true;
+    }
 
-    if (hit) warnings.push(r);
+    if(hit) warnings.push(r);
   });
 
-  const order = { high:0, medium:1, info:2 };
+  const order={high:0, medium:1, info:2};
   warnings.sort((a,b)=>order[a.priority]-order[b.priority]);
 
   return warnings;
@@ -282,14 +281,17 @@ function evaluateRules(scale) {
 // EXPORT
 //////////////////////////////////////////////////
 
-function exportReport(warnings) {
+function exportReport(results, selected, warnings){
+
+  let r = results[selected];
 
   let text = "PHM Scale Assessment\n\n";
+  text += "Recommended Scale: 1:" + r.N + "\n\n";
 
-  warnings.forEach(w => {
+  warnings.forEach(w=>{
     text += "- " + w.message + "\n";
-    w.references.forEach(r => {
-      text += "   (" + r.title + ")\n";
+    w.references.forEach(ref=>{
+      text += "   ("+ref.title+")\n";
     });
   });
 
@@ -301,51 +303,100 @@ function exportReport(warnings) {
 }
 
 //////////////////////////////////////////////////
-// RESULTS
+// RESULTS ✅ FULL RESTORED
 //////////////////////////////////////////////////
 
-function showResults() {
+function showResults(){
 
   let results = compute();
-  let selected = results.findIndex(r => r.pass);
+  let selected = results.findIndex(r=>r.pass);
 
-  let html = "<h2>Results</h2>";
+  let html="<h2>Scale Assessment</h2>";
 
-  if (selected >= 0) {
-    html += `<div><b>Recommended Scale: 1:${results[selected].N}</b></div>`;
+  if(selected>=0){
+    let r = results[selected];
+
+    html+=`
+    <div class="recommend">
+      RECOMMENDED SCALE<br>1:${r.N}
+    </div>
+    `;
   }
 
-  let scale = results[selected]?.N || 100;
+  // ✅ TABLE RESTORED
+  html+=`
+  <table>
+    <tr>
+      <th>Scale</th>
+      <th>Length (m)</th>
+      <th>Width (m)</th>
+      <th>Flowrate (L/s)</th>
+      <th>Geometry</th>
+      <th>Flow</th>
+      <th>Reason</th>
+    </tr>
+  `;
 
-  let warnings = evaluateRules(scale);
-
-  html += "<ul>";
-
-  warnings.forEach(w => {
-
-    let cls = "warning-" + w.priority;
-    let icon = w.priority === "high" ? "⚠" : "ℹ";
-
-    html += `<li class="${cls}">${icon} ${w.message}`;
-
-    if (w.references.length) {
-      html += "<ul>";
-      w.references.forEach(r => {
-        html += `<li><a href="${r.link}" target="_blank">${r.title}</a></li>`;
-      });
-      html += "</ul>";
-    }
-
-    html += "</li>";
+  results.forEach((r,i)=>{
+    html+=`
+    <tr class="${i===selected?'selected':''}">
+      <td>1:${r.N}</td>
+      <td>${r.Lm.toFixed(2)}</td>
+      <td>${r.Wm.toFixed(2)}</td>
+      <td>${r.Qm.toFixed(1)}</td>
+      <td>${r.geo?'✓':'✗'}</td>
+      <td>${r.flow?'✓':'✗'}</td>
+      <td>${r.reason}</td>
+    </tr>`;
   });
 
-  html += "</ul>";
+  html+="</table>";
 
-  html += `
-  <button onclick='exportReport(${JSON.stringify(warnings)})'>
-    Export Report
-  </button>
-  `;
+  //////////////////////////////////////////////////
+  // ✅ WARNINGS ADDED UNDERNEATH (SAFE)
+  //////////////////////////////////////////////////
+
+  if(selected>=0){
+
+    let scale = results[selected].N;
+    let warnings = evaluateRules(scale);
+
+    if(warnings.length){
+
+      html+=`<div class="reasoning"><h3>Modelling Considerations</h3><ul>`;
+
+      warnings.forEach(w=>{
+
+        let cls = "warning-"+w.priority;
+        let icon = w.priority==="high"?"⚠":"ℹ";
+
+        html+=`<li class="${cls}">${icon} ${w.message}`;
+
+        if(w.references.length){
+          html+=`<ul>`;
+          w.references.forEach(r=>{
+            html+=`<li><a href="${r.link}" target="_blank">${r.title}</a></li>`;
+          });
+          html+=`</ul>`;
+        }
+
+        html+=`</li>`;
+      });
+
+      html+="</ul></div>";
+
+      html += `
+      <button onclick='exportReport(${JSON.stringify(results)}, ${selected}, ${JSON.stringify(warnings)})'>
+        Export Report
+      </button>`;
+    }
+  }
+
+  html+=`
+  <div style="display:flex; justify-content:space-between; margin-top:20px;">
+    <button onclick="back()">Back</button>
+    <button onclick="start()">Restart</button>
+  </div>`;
 
   render(html);
 }
