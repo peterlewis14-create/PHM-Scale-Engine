@@ -193,7 +193,9 @@ function computeScales() {
   const bayW = answers.bayWidth||0;
   const Qavail = (answers.availableFlow||0)/1000;
 
-  const scales=[20,40,60,80,100,150,200];
+  // ✅ Limit scales to engineering range
+  const scales=[20,30,40,50,60,70,80,90,100];
+
   const results=[];
 
   for(let i=0;i<scales.length;i++){
@@ -206,8 +208,30 @@ function computeScales() {
     let fitsGeo=(Lm<=bayL)&&(Wm<=bayW);
     let fitsFlow=(Qm<=Qavail);
 
-    results.push({N,Lm,Wm,Qm,fitsGeo,fitsFlow,pass:fitsGeo&&fitsFlow});
+    let pass = fitsGeo && fitsFlow;
+
+    // ✅ Engineering rating
+    let rating="";
+    if(N===50 && pass){
+      rating="Preferred";
+    } else if(N<50 && pass){
+      rating="Very good (fine scale)";
+    } else if(N<=80 && pass){
+      rating="Acceptable";
+    } else if(N<=100 && pass){
+      rating="Marginal";
+    } else {
+      rating="Not suitable";
+    }
+
+    results.push({
+      N,Lm,Wm,Qm,
+      fitsGeo,fitsFlow,
+      pass,
+      rating
+    });
   }
+
   return results;
 }
 
@@ -216,33 +240,74 @@ function computeScales() {
 // ----------------------------------------------------
 function showResults() {
   const results=computeScales();
-  let selected=results.findIndex(r=>r.pass);
+
+  // ✅ Choose best scale based on engineering preference
+  let selected = -1;
+
+  // Priority 1: 1:50
+  selected = results.findIndex(r => r.N===50 && r.pass);
+
+  // Priority 2: smallest acceptable scale
+  if(selected === -1){
+    selected = results.findIndex(r => r.pass);
+  }
 
   let html="<h2>Scale Assessment & Recommendation</h2>";
 
-  html+= selected>=0
-    ? `<div class="recommend">✅ Recommended Scale: 1:${results[selected].N}</div>`
-    : `<div class="recommend">❌ No viable scale</div>`;
+  if(selected>=0){
+    html += `<div class="recommend">✅ Recommended Scale: 1:${results[selected].N}</div>`;
+  } else {
+    html += `<div class="recommend">❌ No viable scale within acceptable engineering range (≤1:100)</div>`;
+  }
 
-  html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th></tr>";
+  // ----------------------------------------------------
+  // TABLE
+  // ----------------------------------------------------
+  html+="<table><tr>";
+  html+="<th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th><th>Assessment</th></tr>";
 
   for(let i=0;i<results.length;i++){
     let r=results[i];
-    let style=(i===selected)?"style='background:#d9f2ff;font-weight:bold;'":"";
 
-    html+=`<tr ${style}>
+    let highlight = (i===selected) ? "style='background:#d9f2ff;font-weight:bold;'" : "";
+
+    html+=`<tr ${highlight}>
       <td>1:${r.N}</td>
       <td>${r.Lm.toFixed(2)}</td>
       <td>${r.Wm.toFixed(2)}</td>
       <td>${r.Qm.toFixed(3)}</td>
       <td>${r.fitsGeo?"✓":"✗"}</td>
       <td>${r.fitsFlow?"✓":"✗"}</td>
+      <td>${r.rating}</td>
     </tr>`;
   }
 
   html+="</table>";
 
-  html+=buttonRow("start()");
+  // ----------------------------------------------------
+  // ENGINEERING LOGIC TEXT
+  // ----------------------------------------------------
+  html += "<div class='reasoning'>";
+
+  html += "<h3>Engineering Basis</h3>";
+  html += "<ul>";
+  html += "<li>Preferred modelling scale is approximately 1:50</li>";
+  html += "<li>Scales up to 1:80 may be acceptable depending on objectives</li>";
+  html += "<li>Scales coarser than 1:80 reduce hydraulic fidelity</li>";
+  html += "<li>Maximum recommended scale is 1:100</li>";
+  html += "</ul>";
+
+  html += "</div>";
+
+  // ✅ Only back + restart (no next)
+  html += `
+    <div style="display:flex; justify-content:space-between; margin-top:20px;">
+      <button onclick="goBack()">Back</button>
+      <button onclick="start()">Restart</button>
+    </div>
+  `;
+
   render(html);
 }
+
 ``
