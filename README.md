@@ -1,7 +1,7 @@
 # PHM-Scale-Engine
 Scale selection tool for PHM
 flowchart TD
-mermaid
+```mermaid
 flowchart TD
 
 %% --- START ---
