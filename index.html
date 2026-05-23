@@ -4,93 +4,92 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hydraulic Model Scale Tool</title>
+
 <link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
 <header>
-  <h1>Hydraulic Model Scale Selection Tool</h1>
+  <div class="header-inner">
+    <h1>Hydraulic Model Scale Tool</h1>
+    <div class="steps">Step <span id="stepNo">1</span>/4</div>
+  </div>
 </header>
 
 <div class="container">
 
 <!-- STEP 1 -->
 <div id="step1" class="card">
-  <h2>Step 1 – Project Context</h2>
+<h2>Project Context</h2>
 
-  <label>Design Stage</label>
-  <select id="stage">
-    <option>Concept</option>
-    <option>Preliminary</option>
-    <option>Detailed</option>
-  </select>
+<label>Design Stage ⓘ</label>
+<select id="stage"></select>
 
-  <label>Risk</label>
-  <select id="risk">
-    <option>Low</option>
-    <option>Moderate</option>
-    <option>High</option>
-  </select>
+<label>Risk</label>
+<select id="risk"></select>
 
-  <label>Objectives</label>
-  <div>
-    <input type="checkbox" class="obj" value="General hydraulics"> General hydraulics<br>
-    <input type="checkbox" class="obj" value="Scour / sediment transport"> Scour<br>
-    <input type="checkbox" class="obj" value="Energy dissipation"> Energy dissipation<br>
-    <input type="checkbox" class="obj" value="Air entrainment"> Air entrainment<br>
-    <input type="checkbox" class="obj" value="Uplift pressures"> Uplift pressures
-  </div>
+<label>Objectives</label>
+<div id="objectives"></div>
 
-  <div class="btns">
-    <div></div>
-    <button class="primary" onclick="nextStep(1)">Next</button>
-  </div>
+<div class="nav">
+  <div></div>
+  <button onclick="next(1)" class="primary">Next</button>
+</div>
 </div>
 
 <!-- STEP 2 -->
 <div id="step2" class="card hidden">
-  <h2>Step 2 – Prototype</h2>
+<h2>Prototype</h2>
 
-  <input id="Lp" placeholder="Length (m)">
-  <input id="Wp" placeholder="Width (m)">
-  <input id="Qp" placeholder="Discharge (m³/s)">
-  <input id="Hmax" placeholder="Max headwater">
-  <input id="Elev" placeholder="Min elevation">
+<input id="Lp" placeholder="Length (m)">
+<input id="Wp" placeholder="Width (m)">
+<input id="Qp" placeholder="Flow (m³/s)">
+<input id="Hmax" placeholder="Headwater">
+<input id="Elev" placeholder="Min elevation">
 
-  <div class="btns">
-    <button class="secondary" onclick="prevStep(2)">Back</button>
-    <button class="primary" onclick="nextStep(2)">Next</button>
-  </div>
+<div class="nav">
+<button onclick="back(2)">Back</button>
+<button onclick="next(2)" class="primary">Next</button>
+</div>
 </div>
 
 <!-- STEP 3 -->
 <div id="step3" class="card hidden">
-  <h2>Step 3 – Laboratory</h2>
+<h2>Laboratory</h2>
 
-  <input id="Lb" placeholder="Bay length">
-  <input id="Wb" placeholder="Bay width">
-  <input id="Hb" placeholder="Bay height">
-  <input id="Qb" placeholder="Flow (L/s)">
+<input id="Lb" placeholder="Bay length">
+<input id="Wb" placeholder="Bay width">
+<input id="Hb" placeholder="Bay height">
+<input id="Qb" placeholder="Available flow (L/s)">
 
-  <div class="btns">
-    <button class="secondary" onclick="prevStep(3)">Back</button>
-    <button class="primary" onclick="runCalculation()">Calculate</button>
-  </div>
+<div class="nav">
+<button onclick="back(3)">Back</button>
+<button onclick="run()" class="primary">Calculate</button>
+</div>
 </div>
 
 <!-- STEP 4 -->
 <div id="step4" class="card hidden">
-  <h2>Results</h2>
 
-  <div id="recommend" class="recommend"></div>
-  <div id="constraint"></div>
-  <div id="utilisation"></div>
+<div class="hero">
+<div class="scale" id="scaleOut"></div>
+<div class="subtitle">Recommended engineering scale</div>
+</div>
 
-  <div id="table"></div>
+<div id="summary"></div>
 
-  <div id="warnings"></div>
+<canvas id="chart"></canvas>
 
-  <button class="primary" onclick="exportReport()">Export Report</button>
+<div id="alternatives"></div>
+
+<div id="table"></div>
+
+<div id="warnings"></div>
+
+<button onclick="exportReport()" class="primary">Export Report</button>
+
 </div>
 
 </div>
