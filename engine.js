@@ -27,7 +27,6 @@ function goBack() {
   if (historyStack.length === 0) return;
 
   const prev = historyStack.pop();
-
   Object.assign(answers, prev.answers);
   currentStep = prev.step;
 
@@ -62,9 +61,58 @@ function buttonRow(nextFn) {
   `;
 }
 
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
+// ✅ KNOWLEDGE BASE (REVIEWABLE + EXTENSIBLE)
+////////////////////////////////////////////////////////
+
+const KNOWLEDGE_BASE = {
+
+  hydraulics: {
+    title: "Hydraulic Modelling Considerations",
+    statements: [
+      "Flow patterns and water surface profiles are generally well represented under Froude similarity.",
+      "Model scaling preserves gravitational forces but does not preserve viscous forces (Reynolds mismatch).",
+      "At smaller scales, turbulence structure and boundary layer development may differ from prototype."
+    ],
+    references: [
+      "Henderson (1966) – Open Channel Flow",
+      "USBR (1987) – Hydraulic Modeling Guidelines",
+      "Chow (1959) – Open Channel Hydraulics"
+    ]
+  },
+
+  scour: {
+    title: "Scour and Sediment Transport Considerations",
+    statements: [
+      "Sediment transport cannot simultaneously satisfy Froude similarity, Shields parameter, and particle Reynolds similarity.",
+      "Model results should be interpreted as comparative rather than absolute predictions of prototype behaviour.",
+      "Initiation of sediment motion and erosion rates may be scale distorted."
+    ],
+    references: [
+      "Heller (2011) – Scale Effects in Sediment Transport",
+      "Ashida & Michiue (1972)",
+      "USACE EM 1110-2-1601"
+    ]
+  },
+
+  scaleEffects: {
+    title: "General Scale Effects",
+    statements: [
+      "Surface tension and viscous forces become increasingly influential at smaller model scales.",
+      "Air entrainment and jet breakup behaviour are sensitive to Reynolds and Weber number distortion."
+    ],
+    references: [
+      "Novak et al. – Hydraulic Structures",
+      "Falvey (1980) – Air-Water Flow in Spillways"
+    ]
+  }
+
+};
+
+////////////////////////////////////////////////////////
 // PROJECT SPECIFICS
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
+
 function showProjectSpecifics() {
   let html = "<h2>Project Specifics</h2>";
 
@@ -85,13 +133,6 @@ function showProjectSpecifics() {
     <select id="focus">
       <option ${answers.objective==="Hydraulics"?"selected":""}>Hydraulics</option>
       <option ${answers.objective==="Scour"?"selected":""}>Scour</option>
-    </select><br><br>
-
-    <label>Known Hydraulic Issues</label><br>
-    <select id="issues">
-      <option ${answers.issues==="None"?"selected":""}>None</option>
-      <option ${answers.issues==="Some"?"selected":""}>Some</option>
-      <option ${answers.issues==="Critical"?"selected":""}>Critical</option>
     </select>
   `;
 
@@ -105,33 +146,24 @@ function saveProjectSpecifics() {
   answers.designStage = stage.value;
   answers.riskLevel = risk.value;
   answers.objective = focus.value;
-  answers.issues = issues.value;
 
   currentStep++;
   showPrototypeDetails();
 }
 
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
 // PROTOTYPE DETAILS
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
+
 function showPrototypeDetails() {
   let html = "<h2>Prototype Details</h2>";
 
   html += `
-    <label>Total Structure Length (m)</label><br>
-    <input id="len" value="${answers.length || ""}"><br>
-
-    <label>Upstream Extent (m)</label><br>
-    <input id="up" value="${answers.upstream || ""}"><br>
-
-    <label>Downstream Extent (m)</label><br>
-    <input id="down" value="${answers.downstream || ""}"><br>
-
-    <label>Width of Interest (m)</label><br>
-    <input id="width" value="${answers.width || ""}"><br>
-
-    <label>Prototype Discharge (m³/s)</label><br>
-    <input id="Qp" value="${answers.discharge || ""}">
+    <label>Total Length (m)</label><input id="len" value="${answers.length || ""}"><br>
+    <label>Upstream (m)</label><input id="up" value="${answers.upstream || ""}"><br>
+    <label>Downstream (m)</label><input id="down" value="${answers.downstream || ""}"><br>
+    <label>Width (m)</label><input id="width" value="${answers.width || ""}"><br>
+    <label>Discharge (m³/s)</label><input id="Qp" value="${answers.discharge || ""}">
   `;
 
   html += buttonRow("savePrototypeDetails()");
@@ -151,21 +183,17 @@ function savePrototypeDetails() {
   showLab();
 }
 
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
 // LAB CONDITIONS
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
+
 function showLab() {
   let html = "<h2>Laboratory Conditions</h2>";
 
   html += `
-    <label>Bay Length (m)</label><br>
-    <input id="bayL" value="${answers.bayLength || ""}"><br>
-
-    <label>Bay Width (m)</label><br>
-    <input id="bayW" value="${answers.bayWidth || ""}"><br>
-
-    <label>Available Flow (L/s)</label><br>
-    <input id="Qavail" value="${answers.availableFlow || ""}">
+    <label>Bay Length (m)</label><input id="bayL" value="${answers.bayLength || ""}"><br>
+    <label>Bay Width (m)</label><input id="bayW" value="${answers.bayWidth || ""}"><br>
+    <label>Available Flow (L/s)</label><input id="Qavail" value="${answers.availableFlow || ""}">
   `;
 
   html += buttonRow("saveLab()");
@@ -183,9 +211,10 @@ function saveLab() {
   showResults();
 }
 
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
 // SCALE CALC
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
+
 function computeScales() {
   const Lp = (answers.length||0)+(answers.upstream||0)+(answers.downstream||0);
   const Qp = answers.discharge||0;
@@ -209,7 +238,6 @@ function computeScales() {
 
     let rating="";
     if(N===50 && pass) rating="Preferred";
-    else if(N<50 && pass) rating="Very good";
     else if(N<=80 && pass) rating="Acceptable";
     else if(N<=100 && pass) rating="Marginal";
     else rating="Not suitable";
@@ -220,35 +248,43 @@ function computeScales() {
   return results;
 }
 
-// ----------------------------------------------------
-// OBJECTIVE NOTES
-// ----------------------------------------------------
-function getObjectiveNotes() {
+////////////////////////////////////////////////////////
+// OBJECTIVE NOTES (DISPLAY ONLY)
+////////////////////////////////////////////////////////
 
-  let notes = "";
+function buildObjectiveNotesHTML() {
+
+  let html = "<div class='reasoning'><h3>Engineering Modelling Considerations</h3>";
 
   if (answers.objective === "Hydraulics") {
-    notes += "<p><b>Hydraulic Modelling Considerations:</b></p>";
-    notes += "<ul>";
-    notes += "<li>Flow patterns generally well represented under Froude similarity</li>";
-    notes += "<li>Reduced Reynolds number may affect turbulence behaviour</li>";
-    notes += "</ul>";
+    let kb = KNOWLEDGE_BASE.hydraulics;
+    html += "<p><b>" + kb.title + "</b></p><ul>";
+    kb.statements.forEach(s => html += "<li>" + s + "</li>");
+    html += "</ul>";
   }
 
   if (answers.objective === "Scour") {
-    notes += "<p><b>Scour Modelling Considerations:</b></p>";
-    notes += "<ul>";
-    notes += "<li>Sediment processes cannot fully satisfy scaling laws</li>";
-    notes += "<li>Results should be interpreted comparatively</li>";
-    notes += "</ul>";
+    let kb = KNOWLEDGE_BASE.scour;
+    html += "<p><b>" + kb.title + "</b></p><ul>";
+    kb.statements.forEach(s => html += "<li>" + s + "</li>");
+    html += "</ul>";
   }
 
-  return notes;
+  // Always include general scale effects
+  let kb2 = KNOWLEDGE_BASE.scaleEffects;
+  html += "<p><b>" + kb2.title + "</b></p><ul>";
+  kb2.statements.forEach(s => html += "<li>" + s + "</li>");
+  html += "</ul>";
+
+  html += "</div>";
+
+  return html;
 }
 
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
 // RESULTS
-// ----------------------------------------------------
+////////////////////////////////////////////////////////
+
 function showResults() {
   const results=computeScales();
 
@@ -261,7 +297,7 @@ function showResults() {
     ? `<div class="recommend">✅ Recommended Scale: 1:${results[selected].N}</div>`
     : `<div class="recommend">❌ No viable scale within ≤1:100</div>`;
 
-  html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Geo</th><th>Flow</th><th>Assessment</th></tr>";
+  html+="<table><tr><th>Scale</th><th>L</th><th>W</th><th>Q</th><th>Assessment</th></tr>";
 
   for(let i=0;i<results.length;i++){
     let r=results[i];
@@ -272,18 +308,13 @@ function showResults() {
       <td>${r.Lm.toFixed(2)}</td>
       <td>${r.Wm.toFixed(2)}</td>
       <td>${r.Qm.toFixed(3)}</td>
-      <td>${r.fitsGeo?"✓":"✗"}</td>
-      <td>${r.fitsFlow?"✓":"✗"}</td>
       <td>${r.rating}</td>
     </tr>`;
   }
 
   html+="</table>";
 
-  html += "<div class='reasoning'>";
-  html += "<h3>Engineering Modelling Considerations</h3>";
-  html += getObjectiveNotes();
-  html += "</div>";
+  html += buildObjectiveNotesHTML();
 
   html += `
     <div style="display:flex; justify-content:space-between; margin-top:20px;">
