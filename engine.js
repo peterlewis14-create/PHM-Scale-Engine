@@ -29,10 +29,11 @@ function goBack() {
   const prev = historyStack.pop();
   Object.assign(answers, prev.answers);
   currentStep = prev.step;
-
   prev.fn();
 }
 
+// -------------------------------
+// ✅ UPDATED RENDER WITH AUTO TIMESTAMP
 // -------------------------------
 function render(html) {
   const app = document.getElementById("app");
@@ -48,7 +49,29 @@ function render(html) {
     </div>
   `;
 
-  app.innerHTML = progress + html;
+  // ✅ AUTO TIMESTAMP
+  const now = new Date();
+
+  const formattedTime = now.toLocaleString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  let footer = `
+    <div style="
+      margin-top:30px;
+      font-size:12px;
+      color:#777;
+      text-align:right;
+    ">
+      Page generated: ${formattedTime}
+    </div>
+  `;
+
+  app.innerHTML = progress + html + footer;
 }
 
 // -------------------------------
@@ -62,7 +85,7 @@ function buttonRow(nextFn) {
 }
 
 ////////////////////////////////////////////////////////
-// ✅ KNOWLEDGE BASE (REVIEWABLE + EXTENSIBLE)
+// KNOWLEDGE BASE
 ////////////////////////////////////////////////////////
 
 const KNOWLEDGE_BASE = {
@@ -71,39 +94,39 @@ const KNOWLEDGE_BASE = {
     title: "Hydraulic Modelling Considerations",
     statements: [
       "Flow patterns and water surface profiles are generally well represented under Froude similarity.",
-      "Model scaling preserves gravitational forces but does not preserve viscous forces (Reynolds mismatch).",
-      "At smaller scales, turbulence structure and boundary layer development may differ from prototype."
+      "Model scaling preserves gravitational forces but not viscous forces (Reynolds mismatch).",
+      "At smaller scales, turbulence structure may differ from prototype."
     ],
     references: [
-      "Henderson (1966) – Open Channel Flow",
-      "USBR (1987) – Hydraulic Modeling Guidelines",
-      "Chow (1959) – Open Channel Hydraulics"
+      "Henderson (1966)",
+      "USBR Guidelines",
+      "Chow (1959)"
     ]
   },
 
   scour: {
     title: "Scour and Sediment Transport Considerations",
     statements: [
-      "Sediment transport cannot simultaneously satisfy Froude similarity, Shields parameter, and particle Reynolds similarity.",
-      "Model results should be interpreted as comparative rather than absolute predictions of prototype behaviour.",
-      "Initiation of sediment motion and erosion rates may be scale distorted."
+      "Sediment transport cannot satisfy all similarity laws simultaneously.",
+      "Results should be interpreted comparatively rather than absolutely.",
+      "Erosion behaviour may be scale-dependent."
     ],
     references: [
-      "Heller (2011) – Scale Effects in Sediment Transport",
-      "Ashida & Michiue (1972)",
-      "USACE EM 1110-2-1601"
+      "Heller (2011)",
+      "USACE EM 1110",
+      "Ashida & Michiue"
     ]
   },
 
   scaleEffects: {
     title: "General Scale Effects",
     statements: [
-      "Surface tension and viscous forces become increasingly influential at smaller model scales.",
-      "Air entrainment and jet breakup behaviour are sensitive to Reynolds and Weber number distortion."
+      "Surface tension and viscosity become more important at small scales.",
+      "Air entrainment and jet breakup are sensitive to scale distortion."
     ],
     references: [
-      "Novak et al. – Hydraulic Structures",
-      "Falvey (1980) – Air-Water Flow in Spillways"
+      "Novak et al.",
+      "Falvey (1980)"
     ]
   }
 
@@ -242,14 +265,14 @@ function computeScales() {
     else if(N<=100 && pass) rating="Marginal";
     else rating="Not suitable";
 
-    results.push({N,Lm,Wm,Qm,fitsGeo,fitsFlow,pass,rating});
+    results.push({N,Lm,Wm,Qm,pass,rating});
   }
 
   return results;
 }
 
 ////////////////////////////////////////////////////////
-// OBJECTIVE NOTES (DISPLAY ONLY)
+// OBJECTIVE NOTES DISPLAY
 ////////////////////////////////////////////////////////
 
 function buildObjectiveNotesHTML() {
@@ -270,14 +293,12 @@ function buildObjectiveNotesHTML() {
     html += "</ul>";
   }
 
-  // Always include general scale effects
   let kb2 = KNOWLEDGE_BASE.scaleEffects;
   html += "<p><b>" + kb2.title + "</b></p><ul>";
   kb2.statements.forEach(s => html += "<li>" + s + "</li>");
   html += "</ul>";
 
   html += "</div>";
-
   return html;
 }
 
@@ -325,3 +346,4 @@ function showResults() {
 
   render(html);
 }
+``
